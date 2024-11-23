@@ -1,0 +1,391 @@
+.project-list {
+  background: white;
+  border-radius: 10px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.project-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.project-list-header h2 {
+  font-size: 1.25rem;
+  color: #2c3e50;
+  margin: 0;
+  font-weight: 500;
+}
+
+.view-all-btn {
+  background: none;
+  border: none;
+  color: #2196f3;
+  cursor: pointer;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.view-all-btn:hover {
+  background-color: rgba(33, 150, 243, 0.1);
+}
+
+.project-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 0.5rem;
+}
+
+/* Custom scrollbar */
+.project-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.project-items::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.project-items::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.project-items::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.project-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 1.25rem;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.project-item:hover {
+  background: #fff;
+  border-color: #e9ecef;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.project-title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+}
+
+.project-title-row h3 {
+  font-size: 1rem;
+  color: #2c3e50;
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.project-actions {
+  position: relative;
+}
+
+.action-btn {
+  background: none;
+  border: none;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background-color: rgba(108, 117, 125, 0.1);
+  color: #2c3e50;
+}
+
+.project-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.assigned-to,
+.due-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.assigned-to svg,
+.due-date svg {
+  font-size: 1rem;
+  opacity: 0.7;
+}
+
+.project-progress {
+  margin-top: 1rem;
+}
+
+.progress-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.progress-stats span {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+.progress-stats span:last-child {
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.6s ease;
+}
+
+.project-status {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 12px;
+  text-transform: capitalize;
+}
+
+/* Status colors */
+.project-status.ongoing {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ff9800;
+}
+
+.project-status.completed {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: #4caf50;
+}
+
+.project-status.delayed {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+/* Project priority indicator */
+.priority-indicator {
+  width: 4px;
+  height: 100%;
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 4px 0 0 4px;
+}
+
+.priority-high {
+  background-color: #f44336;
+}
+
+.priority-medium {
+  background-color: #ff9800;
+}
+
+.priority-low {
+  background-color: #4caf50;
+}
+
+/* Team members avatars */
+.team-members {
+  display: flex;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.member-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid white;
+  margin-left: -8px;
+  overflow: hidden;
+}
+
+.member-avatar:first-child {
+  margin-left: 0;
+}
+
+.member-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.more-members {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #f1f1f1;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  margin-left: -8px;
+  border: 2px solid white;
+}
+
+/* Empty state */
+.project-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: #6c757d;
+}
+
+.project-empty svg {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  color: #dee2e6;
+}
+
+.project-empty p {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+/* Loading state */
+.project-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+.project-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .project-list {
+    padding: 1rem;
+  }
+
+  .project-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .view-all-btn {
+    width: 100%;
+    text-align: center;
+    padding: 0.75rem;
+    background: #f8f9fa;
+    border-radius: 6px;
+  }
+
+  .project-item {
+    padding: 1rem;
+  }
+
+  .project-meta {
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: flex-start;
+  }
+
+  .team-members {
+    margin-top: 0.75rem;
+  }
+}
+
+/* Dropdown menu for project actions */
+.project-actions-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-width: 160px;
+  z-index: 1000;
+  display: none;
+}
+
+.project-actions:hover .project-actions-dropdown {
+  display: block;
+}
+
+.dropdown-item {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: #2c3e50;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dropdown-item:hover {
+  background: #f8f9fa;
+}
+
+.dropdown-item svg {
+  font-size: 1rem;
+  opacity: 0.7;
+}
+
+/* Animation for new projects */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.project-item {
+  animation: slideIn 0.3s ease-out;
+} 
