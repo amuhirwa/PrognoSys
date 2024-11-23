@@ -1,5 +1,6 @@
 import json
 import subprocess
+import xgboost as xgb
 from django.dispatch import receiver
 from django.shortcuts import render
 from rest_framework import viewsets
@@ -19,7 +20,7 @@ from prognosys import settings
 from threading import Thread
 
 from .models import *
-from .model_loader import diabetes_model, heart_failure_model, diabetes_scaler, heart_failure_scaler
+from .model_loader import diabetes_model, heart_failure_model, diabetes_scaler, heart_failure_scaler, heart_failure_encoder
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import *
 from rest_framework import status
@@ -314,7 +315,8 @@ def submit_test_results(request, patient_id):
         test_result.save()
         
         # Generate predictions
-        prediction_response = generate_prediction(request, test_result.id)
+        test_result_id = test_result.id
+        prediction_response = generate_prediction(request._request, test_result_id)
         if prediction_response.status_code != status.HTTP_201_CREATED:
             return prediction_response
 
@@ -417,6 +419,27 @@ class PredictionViewSet(viewsets.ModelViewSet):
     
     def get_queryset(self):
         return Prediction.objects.all().order_by('-created_at')
+    
+    def partial_update(self, request, *args, **kwargs):
+        """Handle PATCH requests to update prediction status"""
+        try:
+            prediction = self.get_object()
+            
+            # Validate status
+            new_status = request.data.get('status')
+            if new_status not in ['pending', 'confirmed', 'rejected']:
+                return Response({
+                    'error': 'Invalid status value'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            prediction.status = new_status
+            prediction.save()
+            
+            return Response(self.serializer_class(prediction).data)
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
 
 class TreatmentPlanViewSet(viewsets.ModelViewSet):
     serializer_class = TreatmentPlanSerializer
@@ -745,6 +768,14 @@ def get_test_result_detail(request, patient_id, test_id):
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_predictions(request, test_result_id):
+    """Get predictions for a specific test result"""
+    predictions = Prediction.objects.filter(test_result_id=test_result_id)
+    return Response(PredictionSerializer(predictions, many=True).data, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
@@ -753,6 +784,7 @@ def generate_prediction(request, test_result_id):
     """Generate prediction for test results using ML models"""
     try:
         test_result = TestResult.objects.get(id=test_result_id)
+        gender = 'M' if test_result.patient.user.gender == 'Male' else 'F'
         
         # Prepare data for prediction
         features = {
@@ -762,17 +794,22 @@ def generate_prediction(request, test_result_id):
                 test_result.skin_thickness,
                 test_result.insulin,
                 test_result.bmi,
+                test_result.patient.age,
             ],
             'heart': [
+                test_result.patient.age,
+                float(test_result.patient.user.gender == 'Male'),
+                int(heart_failure_encoder["chest_pain_encoder"].transform([test_result.chest_pain_type])[0]),
                 test_result.blood_pressure,
                 test_result.cholesterol,
-                float(test_result.fasting_bs == 'Y'),
-                float(test_result.resting_ecg == 'Normal'),
+                int(heart_failure_encoder["label_encoder"].transform([test_result.fasting_bs])[0]),
+                int(heart_failure_encoder["resting_ecg_encoder"].transform([test_result.resting_ecg])[0]),
                 test_result.max_hr,
-                float(test_result.exercise_angina == 'Y'),
-                float({'TA': 0, 'ATA': 1, 'NAP': 2, 'ASY': 3}[test_result.chest_pain_type])
+                int(heart_failure_encoder["label_encoder"].transform([test_result.exercise_angina])[0]),
             ]
         }
+
+        print(features)
 
         # Scale features
         diabetes_features = diabetes_scaler.transform([features['diabetes']])
@@ -783,26 +820,38 @@ def generate_prediction(request, test_result_id):
         heart_pred = heart_failure_model.predict(xgb.DMatrix([heart_features[0]]))
 
         # Calculate confidence scores
-        diabetes_confidence = float(abs(diabetes_pred[0][0] - 0.5) * 2 * 100)
-        heart_confidence = float(abs(heart_pred[0] - 0.5) * 2 * 100)
+        diabetes_confidence = float(int(diabetes_pred[0][0] * 1000) / 10)
+        heart_confidence = float(int(heart_pred[0] * 1000) / 10)
 
         # Create predictions in database
         predictions = []
-        if diabetes_confidence > 60:
+        
+        # If both predictions have low confidence, create a "Healthy" prediction
+        if diabetes_confidence < 50 and heart_confidence < 50:
+            healthy_confidence = (100 - diabetes_confidence + 100 - heart_confidence) / 2
             predictions.append(Prediction.objects.create(
                 patient=test_result.patient,
                 test_result=test_result,
-                condition='Diabetes' if diabetes_pred[0][0] > 0.5 else 'No Diabetes',
-                confidence=diabetes_confidence
+                condition='Healthy',
+                confidence=healthy_confidence
             ))
+        else:
+            # Create predictions for conditions with confidence > 50%
+            if diabetes_confidence >= 50:
+                predictions.append(Prediction.objects.create(
+                    patient=test_result.patient,
+                    test_result=test_result,
+                    condition='Diabetes',
+                    confidence=diabetes_confidence
+                ))
 
-        if heart_confidence > 60:
-            predictions.append(Prediction.objects.create(
-                patient=test_result.patient,
-                test_result=test_result,
-                condition='Heart Disease' if heart_pred[0] > 0.5 else 'No Heart Disease',
-                confidence=heart_confidence
-            ))
+            if heart_confidence >= 50:
+                predictions.append(Prediction.objects.create(
+                    patient=test_result.patient,
+                    test_result=test_result,
+                    condition='Heart Disease',
+                    confidence=heart_confidence
+                ))
 
         # Create notifications for doctors
         for doctor in test_result.patient.doctors.all():

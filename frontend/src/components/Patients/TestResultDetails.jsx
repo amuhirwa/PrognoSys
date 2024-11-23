@@ -18,12 +18,15 @@ import {
 } from 'lucide-react';
 import { api } from '@/utils/axios';
 import { toast } from 'react-hot-toast';
+import { useDispatch } from 'react-redux';
+import { changepage } from '@/utils/SharedData';
 
 const TestResultDetails = () => {
   const { patientId, testId } = useParams();
   const navigate = useNavigate();
   const [testResult, setTestResult] = useState(null);
   const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     fetchTestResult();
@@ -114,7 +117,7 @@ const TestResultDetails = () => {
                 </div>
               </div>
               <Button
-                onClick={() => navigate(`/predictions/${testResult?.id}`)}
+                onClick={() => {dispatch(changepage("Test")); navigate(`/predictions/${testResult?.id}`)}}
                 className="bg-blue-600 hover:bg-blue-700"
               >
                 View Prediction

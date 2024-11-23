@@ -552,7 +552,7 @@ class Prediction(models.Model):
     condition = models.CharField(max_length=255)
     confidence = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
-    test_result = models.OneToOneField(TestResult, on_delete=models.CASCADE)
+    test_result = models.ForeignKey(TestResult, on_delete=models.CASCADE, related_name='predictions')
     status = models.CharField(
         max_length=20,
         choices=[

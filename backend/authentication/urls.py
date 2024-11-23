@@ -54,5 +54,8 @@ urlpatterns = [
     path('test-results/<int:test_result_id>/predict/', 
          views.generate_prediction, 
          name='generate-prediction'),
+    path('test-results/<int:test_result_id>/predictions/', 
+         views.get_predictions, 
+         name='get-predictions'),
 ]
 

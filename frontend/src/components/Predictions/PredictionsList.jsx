@@ -13,9 +13,12 @@ import {
 } from 'lucide-react';
 import { api } from "@/utils/axios";
 import { useToast } from "@/hooks/use-toast";
+import { useDispatch } from 'react-redux';
+import { changepage } from '@/utils/SharedData';
 
 const PredictionsList = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { toast } = useToast();
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +42,7 @@ const PredictionsList = () => {
     } finally {
       setLoading(false);
     }
+    console.log(predictions);
   };
 
   const getStatusColor = (confidence) => {
@@ -115,7 +119,7 @@ const PredictionsList = () => {
                   <div className="flex space-x-3">
                     <Button
                       variant="outline"
-                      onClick={() => navigate(`/predictions/${prediction.id}`)}
+                      onClick={() => {dispatch(changepage("list")); navigate(`/predictions/${prediction.id}`)}}
                     >
                       View Details
                     </Button>
