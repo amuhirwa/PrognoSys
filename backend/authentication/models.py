@@ -564,7 +564,6 @@ class Prediction(models.Model):
     )
 
     def __str__(self):
-
         return f"{self.condition} - {self.patient.user.get_full_name()}"
 
 

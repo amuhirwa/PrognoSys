@@ -45,5 +45,14 @@ urlpatterns = [
     path('admin/users/', views.manage_users, name='manage-users'),
     path('admin/resources/', views.manage_resources, name='manage-resources'),
     path('admin/model/retrain/', views.retrain_model, name='retrain-model'),
+    path('get_profile/', views.get_profile, name='get_profile'),
+    path('update_profile/', views.update_profile, name='update_profile'),
+    path('change_password/', views.change_password, name='change_password'),
+    path('patient/<int:patient_id>/test-results/<int:test_id>/', 
+         views.get_test_result_detail, 
+         name='test-result-detail'),
+    path('test-results/<int:test_result_id>/predict/', 
+         views.generate_prediction, 
+         name='generate-prediction'),
 ]
 

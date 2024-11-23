@@ -2,6 +2,7 @@ import axios, { AxiosError } from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { store } from "../app/store";
 import toast from "react-hot-toast";
+import { resetStateToDefault } from "./SharedData";
 
 function createAxiosInstance() {
   const info = localStorage.getItem("persist:prognosys");
@@ -27,13 +28,19 @@ function createAxiosInstance() {
     (error) => {
       const errorObj = error;
       if (
-        errorObj.response?.status == 401 &&
-        store.getState().sharedData.usersLogin.length > 0
+        errorObj.response?.status == 401
+        && errorObj.response?.config.url != "notifications/"
       ) {
-        // store.dispatch(resetStateToDefault());
+        store.dispatch(resetStateToDefault());
+
+        localStorage.removeItem("persist:prognosys");
+        sessionStorage.removeItem("token");
+        
+        toast.error("Session expired. Please login again.");
+        
         window.location.href = "/login";
-        /*  store.dispatch(resetStateToDefault());
-        window.location.href = "/auth"; */
+        
+        return Promise.reject(error);
       } else {
         const errorData = errorObj.response?.data;
         let errorMessage = errorData

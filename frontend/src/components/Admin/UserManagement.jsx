@@ -10,6 +10,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { api } from "@/utils/axios";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { UserPlus, Users } from 'lucide-react';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -94,26 +98,32 @@ const UserManagement = () => {
   };
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold">User Management</h2>
-          <p className="text-muted-foreground mt-1">Manage system users and their roles</p>
+    <div className="p-8 space-y-8">
+      {/* Header Section */}
+      <div className="flex justify-between items-start">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Users className="h-8 w-8 text-primary" />
+            <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
+          </div>
+          <p className="text-muted-foreground">
+            Manage system users, roles, and permissions
+          </p>
         </div>
-        <Button size="sm">
-          <Plus className="mr-2 h-4 w-4" />
+        <Button size="sm" className="gap-2">
+          <UserPlus className="h-4 w-4" />
           Add New User
         </Button>
       </div>
 
-      <Card>
+      <Card className="border-border/50">
         <CardHeader className="pb-0">
           <div className="flex flex-col md:flex-row gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
               <Input
-                className="pl-9"
-                placeholder="Search by name or email..."
+                className="pl-9 bg-background"
+                placeholder="Search users by name or email..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -124,13 +134,13 @@ const UserManagement = () => {
               defaultValue="all"
             >
               <SelectTrigger className="w-full md:w-[200px]">
-                <SelectValue placeholder="All Roles" />
+                <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
-                <SelectItem value="Health Professional">Health Professional</SelectItem>
-                <SelectItem value="Patient">Patient</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="doctor">Doctor</SelectItem>
+                <SelectItem value="patient">Patient</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -141,68 +151,66 @@ const UserManagement = () => {
               <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : users.length > 0 ? (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {user.user_role}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        user.is_active 
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}>
-                        {user.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setEditingUser(user);
-                            setIsEditModalOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => {
-                            setIsDeletingUser(user);
-                            setIsDeleteModalOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+            <ScrollArea className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-muted/50">
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={getRoleBadgeVariant(user.user_role)}>
+                          {user.user_role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.is_active ? "success" : "secondary"}>
+                          {user.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              setEditingUser(user);
+                              setIsEditModalOpen(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => {
+                              setIsDeletingUser(user);
+                              setIsDeleteModalOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </ScrollArea>
           ) : (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <Search className="h-8 w-8 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">No users found</p>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <Users className="h-12 w-12 text-muted-foreground/50 mb-4" />
+              <p className="text-lg font-medium text-muted-foreground mb-2">No users found</p>
               <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
             </div>
           )}
@@ -211,58 +219,60 @@ const UserManagement = () => {
 
       {/* Edit Modal */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Edit className="h-5 w-5" />
+              Edit User
+            </DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEditUser}>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Name</Label>
+          <Separator />
+          <form onSubmit={handleEditUser} className="space-y-6 py-4">
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Full Name</Label>
                 <Input
                   id="name"
                   name="name"
-                  defaultValue={editingUser?.name || ''}
+                  value={editingUser?.name || ''}
+                  onChange={(e) => setEditingUser(prev => ({...prev, name: e.target.value}))}
                   required
                 />
               </div>
-              <div>
+              <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
-                  defaultValue={editingUser?.email || ''}
+                  value={editingUser?.email || ''}
+                  onChange={(e) => setEditingUser(prev => ({...prev, email: e.target.value}))}
                   required
                 />
               </div>
-              <div>
+              <div className="grid gap-2">
                 <Label htmlFor="user_role">Role</Label>
                 <Select
                   name="user_role"
-                  value={editingUser?.user_role || "Patient"}
-                  onValueChange={(value) => {
-                    setEditingUser(prev => ({...prev, user_role: value}))
-                  }}
+                  value={editingUser?.user_role || "patient"}
+                  onValueChange={(value) => setEditingUser(prev => ({...prev, user_role: value}))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Admin">Admin</SelectItem>
-                    <SelectItem value="Health Professional">Health Professional</SelectItem>
-                    <SelectItem value="Patient">Patient</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="doctor">Doctor</SelectItem>
+                    <SelectItem value="patient">Patient</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+              <div className="grid gap-2">
                 <Label htmlFor="is_active">Status</Label>
                 <Select
                   name="is_active"
                   value={editingUser?.is_active?.toString() || "true"}
-                  onValueChange={(value) => {
-                    setEditingUser(prev => ({...prev, is_active: value === "true"}))
-                  }}
+                  onValueChange={(value) => setEditingUser(prev => ({...prev, is_active: value === "true"}))}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
@@ -274,7 +284,7 @@ const UserManagement = () => {
                 </Select>
               </div>
             </div>
-            <DialogFooter className="mt-6">
+            <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>
                 Cancel
               </Button>
@@ -288,17 +298,19 @@ const UserManagement = () => {
       <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" />
+              Delete User
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the user
-              account and remove their data from our servers.
+              Are you sure you want to delete {isDeletingUser?.name}'s account? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteUser}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>
@@ -307,6 +319,20 @@ const UserManagement = () => {
       </AlertDialog>
     </div>
   );
+};
+
+// Helper function for role badge variants
+const getRoleBadgeVariant = (role) => {
+  switch (role.toLowerCase()) {
+    case 'admin':
+      return 'default';
+    case 'doctor':
+      return 'blue';
+    case 'patient':
+      return 'secondary';
+    default:
+      return 'outline';
+  }
 };
 
 export default UserManagement; 

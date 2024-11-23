@@ -10,7 +10,8 @@ import {
   ChevronRight,
   Activity,
   Heart,
-  Thermometer
+  Thermometer,
+  Calendar
 } from 'lucide-react';
 import { api } from "@/utils/axios";
 import { useToast } from "@/hooks/use-toast";
@@ -74,39 +75,54 @@ const PredictionResults = () => {
               AI Prediction Results
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <h3 className="font-semibold text-lg mb-2">
-                  Predicted Condition
-                </h3>
-                <p className="text-blue-700">
-                  {prediction?.condition || 'No prediction available'}
-                </p>
-                <div className="mt-2 flex items-center">
-                  <div className="text-sm text-blue-600">
-                    Confidence: {prediction?.confidence || 0}%
+          <CardContent className="p-6">
+            <div className="space-y-6">
+              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-6 border border-blue-200">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-lg text-gray-900">
+                    Prediction Results
+                  </h3>
+                  <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    prediction?.status === 'incorrect' 
+                      ? 'bg-red-100 text-red-700'
+                      : prediction?.status === 'confirmed'
+                      ? 'bg-green-100 text-green-700'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {prediction?.status[0].toUpperCase() + prediction?.status.slice(1) || 'Pending'}
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-4">
-                <h3 className="font-semibold">Risk Factors</h3>
-                {prediction?.riskFactors?.map((factor, index) => (
-                  <div 
-                    key={index}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                  >
-                    <span>{factor.factor}</span>
-                    <span className={`px-2 py-1 rounded text-sm ${
-                      factor.severity === 'High' ? 'bg-red-100 text-red-700' :
-                      factor.severity === 'Moderate' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-green-100 text-green-700'
-                    }`}>
-                      {factor.severity}
-                    </span>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-gray-500 mb-1">Predicted Condition</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {prediction?.condition || 'No prediction available'}
+                    </p>
                   </div>
-                ))}
+
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Confidence Level</p>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex-1 h-3 bg-blue-100 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-blue-500 rounded-full transition-all duration-500 ease-out"
+                          style={{ width: `${prediction?.confidence || 0}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 min-w-[3rem]">
+                        {prediction?.confidence || 0}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-blue-200">
+                    <div className="flex items-center space-x-2 text-sm text-gray-500">
+                      <Calendar className="h-4 w-4" />
+                      <span>Predicted on {prediction?.created_at || 'N/A'}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>

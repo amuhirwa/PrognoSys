@@ -36,8 +36,8 @@ const sharedDataSlice = createSlice({
   },
 });
 
-export const selectCurrentUser = (state) => state.PrognoSys.usersLogin.user;
-export const selectCurrentToken = (state) => state.PrognoSys.usersLogin.token;
+export const selectCurrentUser = (state) => state.sharedData.usersLogin.user;
+export const selectCurrentToken = (state) => state.sharedData.usersLogin.token;
 
 export const {
   addUserLogin,

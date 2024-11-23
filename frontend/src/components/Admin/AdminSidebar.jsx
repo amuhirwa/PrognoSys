@@ -10,9 +10,20 @@ import {
   LogOut,
   Shield
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { resetStateToDefault } from '@/utils/SharedData';
 
 const AdminSidebar = () => {
   const location = useLocation();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    dispatch(resetStateToDefault());
+    navigate('/login');
+  }
+
   
   const menuItems = [
     {
@@ -79,7 +90,7 @@ const AdminSidebar = () => {
       </nav>
 
       <div className="p-4 border-t">
-        <button className="flex items-center space-x-3 px-4 py-2.5 w-full rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200">
+        <button className="flex items-center space-x-3 px-4 py-2.5 w-full rounded-lg text-red-600 hover:bg-red-50 transition-colors duration-200" onClick={handleLogout}>
           <LogOut className="h-5 w-5" />
           <span>Logout</span>
         </button>

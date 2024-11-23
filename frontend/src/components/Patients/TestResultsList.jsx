@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,16 +10,16 @@ import {
   Calendar,
   Clock,
   ChevronRight,
-} from 'lucide-react';
-import { api } from '@/utils/axios';
-import { toast } from 'react-hot-toast';
+} from "lucide-react";
+import { api } from "@/utils/axios";
+import { toast } from "react-hot-toast";
 
 const TestResultsList = () => {
   const { patientId } = useParams();
   const navigate = useNavigate();
   const [testResults, setTestResults] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     fetchTestResults();
@@ -37,7 +37,7 @@ const TestResultsList = () => {
     }
   };
 
-  const filteredResults = testResults.filter(result => 
+  const filteredResults = testResults.filter((result) =>
     result.date.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -48,7 +48,9 @@ const TestResultsList = () => {
         <div className="mb-8 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Lab Results</h1>
-            <p className="text-gray-500">View all test results and lab reports</p>
+            <p className="text-gray-500">
+              View all test results and lab reports
+            </p>
           </div>
           <Button
             onClick={() => navigate(`/patient/${patientId}`)}
@@ -81,7 +83,13 @@ const TestResultsList = () => {
             </Card>
           ) : filteredResults.length > 0 ? (
             filteredResults.map((result) => (
-              <Card key={result.id} className="hover:shadow-lg transition-shadow duration-200">
+              <Card
+                key={result.id}
+                onClick={() =>
+                  navigate(`/patient/${patientId}/test-results/${result.id}`)
+                }
+                className="hover:shadow-lg transition-shadow duration-200 cursor-pointer"
+              >
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="space-y-3">
@@ -89,13 +97,13 @@ const TestResultsList = () => {
                         <Activity className="h-5 w-5 text-blue-500" />
                         <h3 className="font-semibold text-lg">Test Results</h3>
                       </div>
-                      
+
                       <div className="flex items-center space-x-6 text-sm text-gray-500">
                         <span className="flex items-center">
                           <Calendar className="h-4 w-4 mr-2" />
                           {result.date}
                         </span>
-                      </div>       
+                      </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                         <div className="flex items-center space-x-2">
                           <Activity className="h-4 w-4 text-blue-500" />
@@ -118,7 +126,11 @@ const TestResultsList = () => {
                     </div>
 
                     <Button
-                      onClick={() => navigate(`/patient/${patientId}/prediction/${result.id}`)}
+                      onClick={() =>
+                        navigate(
+                          `/patient/${patientId}/test-results/${result.id}`
+                        )
+                      }
                       variant="ghost"
                       className="flex items-center"
                     >

@@ -25,6 +25,8 @@ import AdminLayout from "./layouts/AdminLayout";
 import UserManagement from "./components/Admin/UserManagement";
 import ModelManagement from "./components/Admin/ModelManagement";
 import ResourceAllocation from "./components/Admin/ResourceAllocation";
+import Profile from "./pages/Profile";
+import TestResultDetails from '@/components/Patients/TestResultDetails';
 
 function App() {
   return (
@@ -58,6 +60,8 @@ function App() {
               <Route path="predictions" element={<PredictionsList />} />
               <Route path="patient/:patientId/test-results-list" element={<TestResultsList />} />
               <Route path="dash" element={<Dashboard />} />
+              <Route path="profile" element={<Profile />} />
+              <Route path="patient/:patientId/test-results/:testId" element={<TestResultDetails />} />
             </Route>
 
             {/* Catch all route - redirect to login */}

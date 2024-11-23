@@ -39,14 +39,23 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import createAxiosInstance from '@/utils/axios';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useNotifications } from '@/contexts/NotificationContext';
+import { resetStateToDefault } from '@/utils/SharedData';
+import { useNavigate } from 'react-router-dom';
 
 const NavBar = ({ userType }) => {
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [userInfo, setUserInfo] = useState(null);
   const selector = useSelector(state => state.sharedData.usersLogin)
+
+  const handleLogout = () => {
+    dispatch(resetStateToDefault());
+    navigate('/login');
+  }
 
   useEffect(() => {
     console.log(selector)
@@ -171,14 +180,14 @@ const NavBar = ({ userType }) => {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
                   <UserCircle className="mr-2 h-4 w-4" /> Profile
                 </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Mail className="mr-2 h-4 w-4" /> Messages
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-red-600">
+                <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={handleLogout}>
                   <LogOut className="mr-2 h-4 w-4" /> Log out
                 </DropdownMenuItem>
               </DropdownMenuContent>

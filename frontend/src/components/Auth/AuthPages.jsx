@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useFormik } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-hot-toast";
@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import createAxiosInstance from "@/utils/axios";
 import { useDispatch } from 'react-redux';
-import { addUserLogin } from '@/utils/SharedData';
+import { addUserLogin, selectCurrentToken } from '@/utils/SharedData';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from "react-redux";
 
@@ -40,10 +40,19 @@ const AuthPages = () => {
   });
   const [userType, setUserType] = useState("doctor");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const instance = createAxiosInstance();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [showPassword, setShowPassword] = useState(false);
+  const token = useSelector(selectCurrentToken);
+
+  useEffect(() => {
+    if (token) {
+      setTimeout(() => {
+        navigate('/dashboard', { replace: true });
+      }, 100);
+    }
+  }, [token]);
 
   const registerSchema = Yup.object({
     name: Yup.string()
@@ -97,9 +106,7 @@ const AuthPages = () => {
           }));
           
           toast.success("Login successful!");
-          navigate('/dashboard');
         } else {
-          console.log(response)
           toast.error("Login failed. Please check your credentials.");
         }
       } catch (error) {

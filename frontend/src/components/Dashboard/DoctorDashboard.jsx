@@ -47,7 +47,7 @@ const DoctorDashboard = () => {
     <div className="space-y-4 p-2 md:space-y-8 md:p-8 md:pt-6 max-w-full overflow-x-hidden">
       {/* Stats Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
-        <Card className="bg-white border-none shadow-md hover:shadow-lg transition-all duration-200">
+        <Card className="bg-white border-none hover:shadow-md transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Patients
@@ -88,7 +88,7 @@ const DoctorDashboard = () => {
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
         {/* High Risk Patients */}
-        <Card className="bg-white border-none shadow-md hover:shadow-lg transition-all duration-200">
+        <Card className="bg-white border-none hover:shadow-md transition-all duration-200">
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-lg font-semibold flex items-center text-gray-900">
               <div className="p-2 bg-red-50 rounded-lg mr-3">
@@ -124,7 +124,7 @@ const DoctorDashboard = () => {
         </Card>
 
         {/* Today's Appointments */}
-        <Card className="bg-white border-none shadow-md hover:shadow-lg transition-all duration-200">
+        <Card className="bg-white border-none hover:shadow-md transition-all duration-200">
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-lg font-semibold flex items-center text-gray-900">
               <div className="p-2 bg-blue-50 rounded-lg mr-3">
@@ -160,7 +160,7 @@ const DoctorDashboard = () => {
         </Card>
 
         {/* Treatment Success Chart */}
-        <Card className="md:col-span-2 bg-white border-none shadow-md hover:shadow-lg transition-all duration-200">
+        <Card className="md:col-span-2 bg-white border-none hover:shadow-md transition-all duration-200">
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-lg font-semibold flex items-center text-gray-900">
               <div className="p-2 bg-green-50 rounded-lg mr-3">

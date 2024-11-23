@@ -11,7 +11,7 @@ import { api } from "@/utils/axios";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
 
-export const PatientList = () => {
+export function PatientList() {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -160,7 +160,7 @@ export const PatientList = () => {
       </Card>
     </div>
   );
-};
+}
 
 export const NewPatientForm = ({ onBack }) => {
   const [formData, setFormData] = useState({
@@ -396,9 +396,4 @@ export const NewPatientForm = ({ onBack }) => {
       </Card>
     </div>
   );
-};
-
-export default {
-  PatientList,
-  NewPatientForm,
 };

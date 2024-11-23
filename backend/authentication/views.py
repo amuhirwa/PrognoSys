@@ -19,6 +19,7 @@ from prognosys import settings
 from threading import Thread
 
 from .models import *
+from .model_loader import diabetes_model, heart_failure_model, diabetes_scaler, heart_failure_scaler
 from rest_framework_simplejwt.views import TokenObtainPairView
 from .serializers import *
 from rest_framework import status
@@ -285,7 +286,6 @@ def submit_test_results(request, patient_id):
                 return Response({
                     'error': f'Invalid value for field: {field}'
                 }, status=status.HTTP_400_BAD_REQUEST)
-
         # Create test result with all fields
         test_result = TestResult.objects.create(
             patient=patient,
@@ -313,11 +313,17 @@ def submit_test_results(request, patient_id):
         test_result.medical_record = medical_record
         test_result.save()
         
+        # Generate predictions
+        prediction_response = generate_prediction(request, test_result.id)
+        if prediction_response.status_code != status.HTTP_201_CREATED:
+            return prediction_response
+
         return Response({
-            'message': 'Test results submitted successfully',
-            'testResultId': test_result.id
+            'message': 'Test results submitted and predictions generated successfully',
+            'testResultId': test_result.id,
+            'predictions': prediction_response.data['predictions']
         }, status=status.HTTP_201_CREATED)
-        
+
     except PatientProfile.DoesNotExist:
         return Response({
             'error': 'Patient not found'
@@ -630,3 +636,193 @@ def retrain_model(request):
         })
     except Exception as e:
         return Response({'error': str(e)}, status=400)
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_profile(request):
+    """Get user's profile information"""
+    user = request.user
+    data = {
+        'name': f"{user.first_name} {user.last_name}",
+        'email': user.email,
+        'phone': user.phone,
+    }
+    return Response(data, status=status.HTTP_200_OK)
+
+@api_view(['PUT'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def update_profile(request):
+    """Update user's profile information"""
+    try:
+        user = request.user
+        name_parts = request.data.get('name', '').split(' ', 1)
+        
+        user.first_name = name_parts[0]
+        user.last_name = name_parts[1] if len(name_parts) > 1 else ''
+        user.email = request.data.get('email', user.email)
+        user.phone = request.data.get('phone', user.phone)
+        user.save()
+
+        return Response({
+            'name': f"{user.first_name} {user.last_name}",
+            'email': user.email,
+            'phone': user.phone,
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PUT'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def change_password(request):
+    """Change user's password"""
+    try:
+        user = request.user
+        current_password = request.data.get('current_password')
+        new_password = request.data.get('new_password')
+
+        if not user.check_password(current_password):
+            return Response({
+                'error': 'Current password is incorrect'
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+
+        return Response({
+            'message': 'Password changed successfully'
+        }, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_test_result_detail(request, patient_id, test_id):
+    """
+    Get detailed test result for a specific test
+    """
+    try:
+        # Verify patient exists and get test result
+        patient = PatientProfile.objects.get(id=patient_id)
+        test_result = TestResult.objects.get(id=test_id, patient=patient)
+        
+        # Get prediction associated with this test result
+        prediction = Prediction.objects.filter(test_result=test_result).first()
+        
+        # Format the data
+        data = {
+            'id': test_result.id,
+            'date': test_result.created_at.strftime('%Y-%m-%d'),
+            'time': test_result.created_at.strftime('%H:%M'),
+            'glucose': test_result.glucose,
+            'blood_pressure': test_result.blood_pressure,
+            'skin_thickness': test_result.skin_thickness,
+            'insulin': test_result.insulin,
+            'bmi': test_result.bmi,
+            'cholesterol': test_result.cholesterol,
+            'fasting_bs': test_result.fasting_bs,
+            'resting_ecg': test_result.resting_ecg,
+            'max_hr': test_result.max_hr,
+            'exercise_angina': test_result.exercise_angina,
+            'chest_pain_type': test_result.chest_pain_type,
+            'prediction_id': prediction.id if prediction else None
+        }
+        
+        return Response(data, status=status.HTTP_200_OK)
+        
+    except PatientProfile.DoesNotExist:
+        return Response({
+            'error': 'Patient not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except TestResult.DoesNotExist:
+        return Response({
+            'error': 'Test result not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def generate_prediction(request, test_result_id):
+    """Generate prediction for test results using ML models"""
+    try:
+        test_result = TestResult.objects.get(id=test_result_id)
+        
+        # Prepare data for prediction
+        features = {
+            'diabetes': [
+                test_result.glucose,
+                test_result.blood_pressure,
+                test_result.skin_thickness,
+                test_result.insulin,
+                test_result.bmi,
+            ],
+            'heart': [
+                test_result.blood_pressure,
+                test_result.cholesterol,
+                float(test_result.fasting_bs == 'Y'),
+                float(test_result.resting_ecg == 'Normal'),
+                test_result.max_hr,
+                float(test_result.exercise_angina == 'Y'),
+                float({'TA': 0, 'ATA': 1, 'NAP': 2, 'ASY': 3}[test_result.chest_pain_type])
+            ]
+        }
+
+        # Scale features
+        diabetes_features = diabetes_scaler.transform([features['diabetes']])
+        heart_features = heart_failure_scaler.transform([features['heart']])
+
+        # Get predictions
+        diabetes_pred = diabetes_model.predict(diabetes_features)
+        heart_pred = heart_failure_model.predict(xgb.DMatrix([heart_features[0]]))
+
+        # Calculate confidence scores
+        diabetes_confidence = float(abs(diabetes_pred[0][0] - 0.5) * 2 * 100)
+        heart_confidence = float(abs(heart_pred[0] - 0.5) * 2 * 100)
+
+        # Create predictions in database
+        predictions = []
+        if diabetes_confidence > 60:
+            predictions.append(Prediction.objects.create(
+                patient=test_result.patient,
+                test_result=test_result,
+                condition='Diabetes' if diabetes_pred[0][0] > 0.5 else 'No Diabetes',
+                confidence=diabetes_confidence
+            ))
+
+        if heart_confidence > 60:
+            predictions.append(Prediction.objects.create(
+                patient=test_result.patient,
+                test_result=test_result,
+                condition='Heart Disease' if heart_pred[0] > 0.5 else 'No Heart Disease',
+                confidence=heart_confidence
+            ))
+
+        # Create notifications for doctors
+        for doctor in test_result.patient.doctors.all():
+            Notification.objects.create(
+                user=doctor.user,
+                message=f"New predictions available for {test_result.patient.user.get_full_name()}",
+                notification_type=NotificationType.PREDICTION,
+                priority='high',
+                related_patient=test_result.patient
+            )
+
+        return Response({
+            'predictions': PredictionSerializer(predictions, many=True).data
+        }, status=status.HTTP_201_CREATED)
+
+    except TestResult.DoesNotExist:
+        return Response({
+            'error': 'Test result not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
