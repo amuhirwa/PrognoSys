@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   Users,
   Brain,
-  Database,
+  Building2,
   Settings,
   LogOut,
   Shield
@@ -42,9 +42,9 @@ const AdminSidebar = () => {
       path: '/admin/models'
     },
     {
-      title: 'Resources',
-      icon: <Database className="h-5 w-5" />,
-      path: '/admin/resources'
+      title: 'Room Management',
+      icon: <Building2 className="h-5 w-5" />,
+      path: '/admin/rooms'
     },
     {
       title: 'Settings',

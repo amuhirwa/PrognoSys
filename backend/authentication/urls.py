@@ -68,5 +68,11 @@ urlpatterns = [
     path('predictions/stats/', 
          views.get_prediction_stats, 
          name='prediction-stats'),
+    path('rooms/', views.manage_rooms, name='manage-rooms'),
+    path('rooms/<int:room_id>/', views.room_detail, name='room-detail'),
+    path('rooms/<int:room_id>/book/', views.book_room, name='book-room'),
+    path('room-bookings/', views.room_bookings, name='room-bookings'),
+    path('rooms/<int:room_id>/bookings/', views.room_bookings, name='room-specific-bookings'),
+    path('rooms/<int:room_id>/occupy/', views.occupy_room, name='occupy-room'),
 ]
 

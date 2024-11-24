@@ -718,8 +718,9 @@ def get_system_stats(request):
         # Get model performance metrics
         total_predictions = Prediction.objects.count()
         correct_predictions = Prediction.objects.filter(status='confirmed').count()
-        print(correct_predictions, total_predictions)
-        accuracy = (correct_predictions / total_predictions * 100) if total_predictions > 0 else 0
+        pending_predictions = Prediction.objects.filter(status='pending').count()
+        print(correct_predictions, pending_predictions, total_predictions)
+        accuracy = ((correct_predictions + pending_predictions) / total_predictions * 100) if total_predictions > 0 else 0
 
         return Response({
             'users': {
@@ -1410,5 +1411,233 @@ def get_prediction_stats(request):
     except Exception as e:
         return Response(
             {'error': str(e)}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(['GET', 'POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def manage_rooms(request):
+    """Get all rooms or create a new room"""
+    if request.method == 'GET':
+        try:
+            # Get query parameters for filtering
+            room_type = request.GET.get('type')
+            status = request.GET.get('status')
+            floor = request.GET.get('floor')
+            search = request.GET.get('search', '').lower()
+
+            # Start with all rooms
+            rooms = Room.objects.all()
+
+            # Apply filters
+            if room_type:
+                rooms = rooms.filter(room_type=room_type)
+            if status:
+                rooms = rooms.filter(status=status)
+            if floor:
+                rooms = rooms.filter(floor=floor)
+            if search:
+                rooms = rooms.filter(
+                    Q(name__icontains=search) |
+                    Q(description__icontains=search)
+                )
+
+            serializer = RoomSerializer(rooms, many=True)
+            return Response(serializer.data)
+
+        except Exception as e:
+            return Response(
+                {'error': str(e)},
+                status=400
+            )
+
+    elif request.method == 'POST':
+        if not request.user.is_staff:  # Only admin can create rooms
+            return Response(
+                {'error': 'Permission denied'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = RoomSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+@api_view(['GET', 'PUT', 'DELETE'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def room_detail(request, room_id):
+    """Get, update or delete a specific room"""
+    try:
+        room = Room.objects.get(id=room_id)
+    except Room.DoesNotExist:
+        return Response(
+            {'error': 'Room not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if request.method == 'GET':
+        serializer = RoomSerializer(room)
+        return Response(serializer.data)
+
+    elif request.method == 'PUT':
+        if not request.user.is_staff:  # Only admin can update rooms
+            return Response(
+                {'error': 'Permission denied'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        serializer = RoomSerializer(room, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    elif request.method == 'DELETE':
+        if not request.user.is_staff:  # Only admin can delete rooms
+            return Response(
+                {'error': 'Permission denied'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        room.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def book_room(request, room_id):
+    """Book a room"""
+    try:
+        room = Room.objects.get(id=room_id)
+        doctor = request.user.doctorprofile
+        
+        # Validate room availability
+        if room.status != 'available':
+            return Response(
+                {'error': 'Room is not available'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        serializer = RoomBookingSerializer(data={
+            **request.data,
+            'room': room.id,
+            'doctor': doctor.id
+        })
+        
+        if serializer.is_valid():
+            # Check for booking conflicts
+            start_time = serializer.validated_data['start_time']
+            end_time = serializer.validated_data['end_time']
+            
+            conflicts = RoomBooking.objects.filter(
+                room=room,
+                status='scheduled',
+                start_time__lt=end_time,
+                end_time__gt=start_time
+            ).exists()
+            
+            if conflicts:
+                return Response(
+                    {'error': 'Room is already booked for this time period'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            booking = serializer.save()
+            
+            # Update room status
+            room.status = 'reserved'
+            room.save()
+            
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+    except Room.DoesNotExist:
+        return Response(
+            {'error': 'Room not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def room_bookings(request, room_id=None):
+    """Get all bookings or bookings for a specific room"""
+    try:
+        # Get query parameters
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        status = request.GET.get('status')
+
+        # Start with all bookings or room-specific bookings
+        bookings = RoomBooking.objects.all()
+        if room_id:
+            bookings = bookings.filter(room_id=room_id)
+
+        # Apply filters
+        if start_date:
+            bookings = bookings.filter(start_time__gte=start_date)
+        if end_date:
+            bookings = bookings.filter(end_time__lte=end_date)
+        if status:
+            bookings = bookings.filter(status=status)
+
+        serializer = RoomBookingSerializer(bookings, many=True)
+        return Response(serializer.data)
+
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def occupy_room(request, room_id):
+    """Occupy a room"""
+    try:
+        room = Room.objects.get(id=room_id)
+        
+        # Check if room is available
+        if room.status != 'available':
+            return Response(
+                {'message': 'Room is not available'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Get doctor profile
+        doctor = DoctorProfile.objects.get(user=request.user)
+        
+        # Update room status
+        room.status = 'occupied'
+        room.current_occupant = doctor
+        room.save()
+        
+        return Response({
+            'message': 'Room occupied successfully'
+        })
+        
+    except Room.DoesNotExist:
+        return Response(
+            {'message': 'Room not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except DoctorProfile.DoesNotExist:
+        return Response(
+            {'message': 'Doctor profile not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'message': str(e)},
             status=status.HTTP_400_BAD_REQUEST
         )

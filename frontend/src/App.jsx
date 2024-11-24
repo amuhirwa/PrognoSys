@@ -17,17 +17,19 @@ import DoctorDashboard from "./components/Dashboard/DoctorDashboard";
 import { PatientList } from "./components/PatientsProfiles";
 import LandingPage from "./pages/LandingPage";
 import Dashboard from "./components/Dashboard/Dashboard";
-import { NotificationProvider } from '@/contexts/NotificationContext';
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import PredictionsList from "./components/Predictions/PredictionsList";
 import TestResultsList from "./components/Patients/TestResultsList";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import AdminLayout from "./layouts/AdminLayout";
 import UserManagement from "./components/Admin/UserManagement";
 import ModelManagement from "./components/Admin/ModelManagement";
-import ResourceAllocation from "./components/Admin/ResourceAllocation";
+import ResourceAllocation from "./components/Admin/RoomManagement";
 import Profile from "./pages/Profile";
-import TestResultDetails from '@/components/Patients/TestResultDetails';
+import TestResultDetails from "@/components/Patients/TestResultDetails";
 import AIRecommendations from "./components/TreatmentRecommendations/AIRecommendations";
+import RoomManagement from "./components/Admin/RoomManagement";
+import DoctorRoomView from "./components/Doctor/DoctorRoomView";
 
 function App() {
   return (
@@ -46,7 +48,7 @@ function App() {
               <Route index element={<AdminDashboard />} />
               <Route path="users" element={<UserManagement />} />
               <Route path="models" element={<ModelManagement />} />
-              <Route path="resources" element={<ResourceAllocation />} />
+              <Route path="rooms" element={<RoomManagement />} />
             </Route>
 
             {/* Doctor/Patient routes */}
@@ -54,16 +56,31 @@ function App() {
               <Route path="dashboard" element={<DoctorDashboard />} />
               <Route path="patients" element={<PatientList />} />
               <Route path="patient/:patientId" element={<PatientRecords />} />
-              <Route path="patient/:patientId/test-results" element={<TestResults />} />
-              <Route path="predictions/:testId" element={<PredictionResults />} />
+              <Route
+                path="patient/:patientId/test-results"
+                element={<TestResults />}
+              />
+              <Route
+                path="predictions/:testId"
+                element={<PredictionResults />}
+              />
               <Route path="treatments" element={<TreatmentRecommendations />} />
-              <Route path="treatments/:predictionId" element={<AIRecommendations />} />
+              <Route
+                path="treatments/:predictionId"
+                element={<AIRecommendations />}
+              />
               <Route path="predictions" element={<PredictionsList />} />
-              <Route path="patient/:patientId/test-results-list" element={<TestResultsList />} />
+              <Route
+                path="patient/:patientId/test-results-list"
+                element={<TestResultsList />}
+              />
               <Route path="dash" element={<Dashboard />} />
               <Route path="profile" element={<Profile />} />
-              <Route path="patient/:patientId/test-results/:testId" element={<TestResultDetails />} />
-
+              <Route
+                path="patient/:patientId/test-results/:testId"
+                element={<TestResultDetails />}
+              />
+              <Route path="rooms" element={<DoctorRoomView />} />
             </Route>
 
             {/* Catch all route - redirect to login */}

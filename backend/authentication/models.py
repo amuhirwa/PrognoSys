@@ -582,3 +582,76 @@ class TreatmentPlan(models.Model):
 
     def __str__(self):
         return f"Treatment Plan for {self.patient.user.get_full_name()}"
+
+class RoomType(models.TextChoices):
+    LAB = 'lab', 'Laboratory'
+    PATIENT = 'patient', 'Patient Room'
+    SURGERY = 'surgery', 'Surgery Room'
+    ICU = 'icu', 'ICU'
+    EMERGENCY = 'emergency', 'Emergency Room'
+    CONSULTATION = 'consultation', 'Consultation Room'
+
+class Room(models.Model):
+    name = models.CharField(max_length=200)  # e.g., "Surgery Room 101"
+    room_type = models.CharField(
+        max_length=20,
+        choices=RoomType.choices,
+        default=RoomType.PATIENT
+    )
+    description = models.TextField(blank=True)
+    is_occupied = models.BooleanField(default=False)
+    current_occupant = models.ForeignKey(
+        DoctorProfile, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='occupied_rooms'
+    )
+    patient = models.ForeignKey(
+        PatientProfile,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_rooms'
+    )
+    floor = models.IntegerField()
+    capacity = models.IntegerField(default=1)
+    equipment = models.TextField(blank=True)  # List of available equipment in the room
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('available', 'Available'),
+            ('occupied', 'Occupied'),
+            ('maintenance', 'Under Maintenance'),
+            ('cleaning', 'Being Cleaned'),
+            ('reserved', 'Reserved')
+        ],
+        default='available'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.get_room_type_display()})"
+
+class RoomBooking(models.Model):
+    room = models.ForeignKey(Room, on_delete=models.CASCADE)
+    doctor = models.ForeignKey(DoctorProfile, on_delete=models.CASCADE)
+    patient = models.ForeignKey(PatientProfile, on_delete=models.CASCADE, null=True, blank=True)
+    start_time = models.DateTimeField()
+    end_time = models.DateTimeField()
+    purpose = models.TextField()
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('scheduled', 'Scheduled'),
+            ('in_progress', 'In Progress'),
+            ('completed', 'Completed'),
+            ('cancelled', 'Cancelled')
+        ],
+        default='scheduled'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.room.name} - {self.doctor.user.get_full_name()}"

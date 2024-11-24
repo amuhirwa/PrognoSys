@@ -139,3 +139,50 @@ class ResourceSerializer(serializers.ModelSerializer):
             'description', 'status'
         ]
 
+
+class RoomSerializer(serializers.ModelSerializer):
+    current_occupant_name = serializers.SerializerMethodField()
+    patient_name = serializers.SerializerMethodField()
+    room_type_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Room
+        fields = [
+            'id', 'name', 'room_type', 'room_type_display', 'description', 
+            'is_occupied', 'current_occupant', 'current_occupant_name',
+            'patient', 'patient_name', 'floor', 'capacity', 'equipment',
+            'status', 'created_at', 'updated_at'
+        ]
+
+    def get_current_occupant_name(self, obj):
+        return obj.current_occupant.user.get_full_name() if obj.current_occupant else None
+
+    def get_patient_name(self, obj):
+        return obj.patient.user.get_full_name() if obj.patient else None
+
+    def get_room_type_display(self, obj):
+        return obj.get_room_type_display()
+
+
+class RoomBookingSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.SerializerMethodField()
+    patient_name = serializers.SerializerMethodField()
+    room_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RoomBooking
+        fields = [
+            'id', 'room', 'room_name', 'doctor', 'doctor_name',
+            'patient', 'patient_name', 'start_time', 'end_time',
+            'purpose', 'status', 'created_at'
+        ]
+
+    def get_doctor_name(self, obj):
+        return obj.doctor.user.get_full_name()
+
+    def get_patient_name(self, obj):
+        return obj.patient.user.get_full_name() if obj.patient else None
+
+    def get_room_name(self, obj):
+        return obj.room.name
+

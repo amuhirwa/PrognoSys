@@ -1,42 +1,42 @@
-import { createBrowserRouter } from 'react-router-dom';
-import Layout from '@/layouts/Layout';
-import AdminLayout from '@/layouts/AdminLayout';
-import AdminDashboard from '@/components/Admin/AdminDashboard';
-import UserManagement from '@/components/Admin/UserManagement';
-import ModelManagement from '@/components/Admin/ModelManagement';
-import ResourceAllocation from '@/components/Admin/ResourceAllocation';
+import { createBrowserRouter } from "react-router-dom";
+import Layout from "@/layouts/Layout";
+import AdminLayout from "@/layouts/AdminLayout";
+import AdminDashboard from "@/components/Admin/AdminDashboard";
+import UserManagement from "@/components/Admin/UserManagement";
+import ModelManagement from "@/components/Admin/ModelManagement";
+import ResourceAllocation from "@/components/Admin/RoomManagement";
 // Import other components...
 
 const router = createBrowserRouter([
   {
-    path: '/',
+    path: "/",
     element: <Layout />,
     children: [
       // Your existing doctor/patient routes
-    ]
+    ],
   },
   {
-    path: '/admin',
+    path: "/admin",
     element: <AdminLayout />,
     children: [
-      { 
-        path: '', 
-        element: <AdminDashboard /> 
+      {
+        path: "",
+        element: <AdminDashboard />,
       },
-      { 
-        path: 'users', 
-        element: <UserManagement /> 
+      {
+        path: "users",
+        element: <UserManagement />,
       },
-      { 
-        path: 'models', 
-        element: <ModelManagement /> 
+      {
+        path: "models",
+        element: <ModelManagement />,
       },
-      { 
-        path: 'resources', 
-        element: <ResourceAllocation /> 
-      }
-    ]
-  }
+      {
+        path: "resources",
+        element: <ResourceAllocation />,
+      },
+    ],
+  },
 ]);
 
-export default router; 
+export default router;

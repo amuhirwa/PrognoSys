@@ -9,28 +9,29 @@ import {
   RefreshCw,
   Search,
   Plus,
-  ArrowUpRight
+  ArrowUpRight,
+  Building2,
+  DoorClosed
 } from 'lucide-react';
 import { api } from "@/utils/axios";
-import { useToast } from "@/hooks/use-toast";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import AddUserModal from './AddUserModal';
-import AddResourceModal from './AddResourceModal';
+import toast from 'react-hot-toast';
+import AddRoomModal from './AddRoomModal';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [recentUsers, setRecentUsers] = useState([]);
-  const [recentResources, setRecentResources] = useState([]);
+  const [recentRooms, setRecentRooms] = useState([]);
   const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [isAddResourceModalOpen, setIsAddResourceModalOpen] = useState(false);
-  const { toast } = useToast();
+  const [isAddRoomModalOpen, setIsAddRoomModalOpen] = useState(false);
 
   useEffect(() => {
     fetchStats();
     fetchRecentUsers();
-    fetchRecentResources();
+    fetchRecentRooms();
   }, []);
 
   const fetchStats = async () => {
@@ -55,14 +56,14 @@ const AdminDashboard = () => {
     }
   };
 
-  const fetchRecentResources = async () => {
+  const fetchRecentRooms = async () => {
     try {
-      const response = await api().get('admin/resources/', {
+      const response = await api().get('rooms/', {
         params: { limit: 5 }
       });
-      setRecentResources(response.data.slice(0, 5));
+      setRecentRooms(response.data.slice(0, 5));
     } catch (error) {
-      console.error('Failed to fetch recent resources:', error);
+      console.error('Failed to fetch recent rooms:', error);
     }
   };
 
@@ -78,15 +79,15 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleAddResource = async (resourceData) => {
+  const handleAddRoom = async (roomData) => {
     try {
-      await api().post('admin/resources/', resourceData);
-      toast.success("Resource added successfully")
-      setIsAddResourceModalOpen(false);
-      fetchRecentResources();
+      await api().post('rooms/', roomData);
+      toast.success("Room added successfully")
+      setIsAddRoomModalOpen(false);
+      fetchRecentRooms();
       fetchStats();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to add resource")
+      toast.error(error.response?.data?.message || "Failed to add room")
     }
   };
 
@@ -130,33 +131,25 @@ const AdminDashboard = () => {
           <CardContent>
             <div className="text-2xl font-bold">{stats?.users.total}</div>
             <p className="text-sm text-green-600 flex items-center mt-1">
-              <span className="flex items-center">
-                <ArrowUpRight className="h-4 w-4 mr-1" />
-                +5%
-              </span>
-              <span className="text-gray-500 ml-1">from last month</span>
+              <span className="text-gray-500 ml-1">Currently active</span>
             </p>
           </CardContent>
         </Card>
 
-        {/* Resource Stats */}
+        {/* Room Stats */}
         <Card className="bg-white border-none hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Resources
+              Rooms
             </CardTitle>
             <div className="p-2 bg-purple-50 rounded-lg">
-              <Database className="h-4 w-4 text-purple-500" />
+              <Building2 className="h-4 w-4 text-purple-500" />
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats?.resources.total}</div>
+            <div className="text-2xl font-bold">{stats?.rooms?.total || 0}</div>
             <p className="text-sm text-green-600 flex items-center mt-1">
-              <span className="flex items-center">
-                <ArrowUpRight className="h-4 w-4 mr-1" />
-                +3%
-              </span>
-              <span className="text-gray-500 ml-1">from last month</span>
+              <span className="text-gray-500 ml-1">Currently occupied</span>
             </p>
           </CardContent>
         </Card>
@@ -251,21 +244,21 @@ const AdminDashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Resource Management Section */}
+        {/* Room Management Section */}
         <Card className="bg-white border-none hover:shadow-lg transition-all duration-200">
           <CardHeader>
             <div className="flex justify-between items-center">
               <CardTitle className="text-lg flex items-center">
-                <Database className="mr-2 h-5 w-5 text-purple-500" />
-                Recent Resources
+                <DoorClosed className="mr-2 h-5 w-5 text-purple-500" />
+                Recent Rooms
               </CardTitle>
               <Button 
                 size="sm" 
                 className="bg-purple-500 hover:bg-purple-600"
-                onClick={() => setIsAddResourceModalOpen(true)}
+                onClick={() => setIsAddRoomModalOpen(true)}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Resource
+                Add Room
               </Button>
             </div>
           </CardHeader>
@@ -274,18 +267,20 @@ const AdminDashboard = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Floor</TableHead>
                   <TableHead>Status</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {recentResources.map((resource) => (
-                  <TableRow key={resource.id}>
-                    <TableCell className="font-medium">{resource.name}</TableCell>
-                    <TableCell>{resource.category}</TableCell>
+                {recentRooms.map((room) => (
+                  <TableRow key={room.id}>
+                    <TableCell className="font-medium">{room.name}</TableCell>
+                    <TableCell>{room.room_type_display}</TableCell>
+                    <TableCell>{room.floor}</TableCell>
                     <TableCell>
-                      <Badge variant={getStatusBadgeVariant(resource.status)}>
-                        {resource.status}
+                      <Badge variant={getRoomStatusBadgeVariant(room.status)}>
+                        {room.status}
                       </Badge>
                     </TableCell>
                   </TableRow>
@@ -303,10 +298,10 @@ const AdminDashboard = () => {
         onSubmit={handleAddUser}
       />
       
-      <AddResourceModal 
-        isOpen={isAddResourceModalOpen}
-        onClose={() => setIsAddResourceModalOpen(false)}
-        onSubmit={handleAddResource}
+      <AddRoomModal 
+        isOpen={isAddRoomModalOpen}
+        onClose={() => setIsAddRoomModalOpen(false)}
+        onSubmit={handleAddRoom}
       />
     </div>
   );
@@ -326,16 +321,18 @@ const getRoleBadgeVariant = (role) => {
   }
 };
 
-const getStatusBadgeVariant = (status) => {
+const getRoomStatusBadgeVariant = (status) => {
   switch (status.toLowerCase()) {
     case 'available':
       return 'success';
-    case 'low_stock':
-      return 'warning';
-    case 'out_of_stock':
+    case 'occupied':
       return 'destructive';
     case 'maintenance':
+      return 'warning';
+    case 'cleaning':
       return 'secondary';
+    case 'reserved':
+      return 'blue';
     default:
       return 'outline';
   }
