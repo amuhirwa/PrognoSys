@@ -32,59 +32,62 @@ const AIRecommendations = () => {
 
   const parseDetailedPlan = (plans) => {
     const result = [];
-
-    plans.forEach((plan) => {
-      const fullText = plan.category + " " + plan.recommendations.join(" ");
-
-      // Find all numbered sections (e.g., "2.", "3.", "4.")
-      const sections = fullText.split(/(?=\*\*\d+\.)/);
-
-      sections.forEach((section) => {
-        // Skip empty sections
-        if (!section.trim()) return;
-
-        // Remove markdown and clean up the text
-        const cleanText = section.replace(/\*\*/g, "").trim();
-
-        // Match the numbered section and its content
-        const match = cleanText.match(/(\d+\.) *(.*)/);
-        if (!match) return;
-
-        const [, numberPart, content] = match;
-
-        // Split by colon to separate title from content
+    
+    plans.forEach(plan => {
+      // First handle the category section
+      let cleanCategory = plan.category.replace(/\*\*/g, "").trim();
+      const categoryMatch = cleanCategory.match(/(\d+\.) *(.*)/);
+      
+      if (categoryMatch) {
+        const [, numberPart, content] = categoryMatch;
         const [titlePart, ...contentParts] = content.split(":");
-
+        
         if (titlePart) {
-          // Join the remaining content back together (in case there were other colons)
           const remainingContent = contentParts.join(":");
-
-          // Split into sentences while preserving abbreviations and decimals
-          const sentences = remainingContent
-            .replace(/(?<=\s|^)e\.g\.(?=\s|$)/g, "EXAMPLE_MARKER")
-            .replace(/(?<=\s|^)i\.e\.(?=\s|$)/g, "THAT_IS_MARKER")
-            .split(/\.(?!\d)(?!\s*[a-z])/)
-            .map((s) =>
-              s
-                .replace(/EXAMPLE_MARKER/g, "e.g.")
-                .replace(/THAT_IS_MARKER/g, "i.e.")
-                .trim()
-            )
-            .filter(Boolean);
-
           result.push({
             category: `${numberPart} ${titlePart.trim()}`,
-            recommendations: sentences,
+            recommendations: remainingContent ? [remainingContent.trim()] : []
           });
+        }
+      }
+      
+      // Then handle any numbered sections in recommendations
+      plan.recommendations.forEach(rec => {
+        const cleanRec = rec.replace(/\*\*/g, "").trim();
+        const recMatch = cleanRec.match(/(\d+\.) *(.*)/);
+        
+        if (recMatch) {
+          const [, numberPart, content] = recMatch;
+          const [titlePart, ...contentParts] = content.split(":");
+          
+          if (titlePart) {
+            const remainingContent = contentParts.join(":");
+            // Split remaining content into sentences
+            const sentences = remainingContent
+              .split(/\.(?!\d)(?!\s*[a-z])/)
+              .map(s => s.trim())
+              .filter(Boolean);
+              
+            result.push({
+              category: `${numberPart} ${titlePart.trim()}`,
+              recommendations: sentences
+            });
+          }
         }
       });
     });
-
-    return result.filter(
-      (item) =>
+    
+    // Sort by the number at the start of the category
+    return result
+      .sort((a, b) => {
+        const aNum = parseInt(a.category);
+        const bNum = parseInt(b.category);
+        return aNum - bNum;
+      })
+      .filter(item => 
         !item.category.toLowerCase().includes("warning") &&
         !item.category.toLowerCase().includes("disclaimer")
-    );
+      );
   };
 
   const parseWarningsAndDisclaimers = (plans) => {

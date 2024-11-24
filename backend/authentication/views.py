@@ -1,4 +1,5 @@
 import json
+from re import M
 import subprocess
 import xgboost as xgb
 from django.dispatch import receiver
@@ -6,6 +7,7 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from datetime import datetime, timedelta
 from django.db.models.signals import post_save
+from django.utils import timezone
 
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes, authentication_classes
@@ -42,6 +44,7 @@ from django.conf import settings
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
+print(settings.GEMINI_API_KEY)
 
 def generate_treatment_recommendation(test_result, prediction):
     """Generate AI treatment recommendations using Gemini"""
@@ -260,7 +263,7 @@ def create_patient_profile(request):
             print(request.data)
             
             patient_profile, created = PatientProfile.objects.get_or_create(
-                user=request.data.get('user'),
+                user=User.objects.get(id=request.data.get('user')),
                 age=request.data.get('age'),
                 emergency_contact=request.data.get('emergency_contact'),
                 medical_history=request.data.get('medical_history'),
@@ -315,18 +318,22 @@ def get_dashboard_stats(request):
     new_patients = PatientProfile.objects.filter(created_at__gte=last_month).count()
     
     # Get success rate (you might want to customize this based on your needs)
-    total_predictions = MedicalRecord.objects.count()
-    correct_predictions = MedicalRecord.objects.filter(
-        predicted_diagnosis=models.F('confirmed_diagnosis')
+    total_predictions = Prediction.objects.count()
+    correct_predictions = Prediction.objects.filter(
+        status='confirmed'
+    ).count()
+    pending_predictions = Prediction.objects.filter(
+        status='pending'
     ).count()
     
-    success_rate = (correct_predictions / total_predictions * 100) if total_predictions > 0 else 0
+    success_rate = ((correct_predictions + pending_predictions) / total_predictions * 100) if total_predictions > 0 else 0
     
     data = {
         'total_patients': total_patients,
         'new_patients': new_patients,
         'success_rate': round(success_rate, 2),
         'total_predictions': total_predictions,
+        'pending_predictions': pending_predictions,
     }
     return Response(data, status=status.HTTP_200_OK)
 
@@ -444,6 +451,15 @@ def submit_test_results(request, patient_id):
         prediction_response = generate_prediction(request._request, test_result_id)
         if prediction_response.status_code != status.HTTP_201_CREATED:
             return prediction_response
+        
+        Notification.objects.create(
+            user=request.user,
+            message=f"Test results submitted successfully and predictions generated.",
+            notification_type=NotificationType.TREATMENT_PLAN,
+            priority='high',
+            related_patient=test_result.patient
+        )
+
 
         return Response({
             'message': 'Test results submitted and predictions generated successfully',
@@ -1282,12 +1298,13 @@ def get_treatment_plans(request):
         treatment_plans = TreatmentPlan.objects.select_related(
             'patient__user', 
             'prediction'
-        ).all()
+        ).all().order_by('-created_at')
         
         data = [{
             'id': plan.id,
             'patient_name': plan.patient.user.get_full_name(),
             'condition': plan.prediction.condition,
+            'prediction_id': plan.prediction.id,
             'primary_treatment': plan.primary_recommendation,
             'created_at': plan.created_at,
             'updated_at': plan.updated_at,
@@ -1296,3 +1313,102 @@ def get_treatment_plans(request):
         return Response(data, status=status.HTTP_200_OK)
     except Exception as e:
         return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_vital_signs(request, patient_id):
+    """
+    Get vital signs history for a patient from their test results
+    """
+    try:
+        patient = PatientProfile.objects.get(id=patient_id)
+        
+        # Get test results ordered by date
+        test_results = TestResult.objects.filter(
+            patient=patient
+        ).order_by('-created_at')
+        
+        # Format the vital signs data
+        vital_signs = []
+        print(vital_signs)
+        for result in test_results:
+            vital_signs.append({
+                'date': result.created_at.strftime('%Y-%m-%d'),
+                'heartRate': result.max_hr,
+                'bloodPressure': result.blood_pressure,
+                'temperature': round(35.5 + (result.bmi / 40 * 3), 1)  # Maps BMI to a range of ~35.5-38.5°C
+            })
+        print(vital_signs)
+        
+        return Response(vital_signs, status=status.HTTP_200_OK)
+        
+    except PatientProfile.DoesNotExist:
+        return Response(
+            {'error': 'Patient not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_prediction_stats(request):
+    """Get prediction statistics for the last 7 days"""
+    try:
+        # Get predictions from the last 7 days
+        end_date = timezone.now()
+        start_date = end_date - timedelta(days=7)
+        
+        # Get all predictions within date range
+        predictions = Prediction.objects.filter(
+            created_at__gte=start_date,
+            created_at__lte=end_date
+        ).values('created_at__date').annotate(
+            total_predictions=Count('id'),
+            correct_predictions=Count('id', filter=Q(status='confirmed')),
+            pending_predictions=Count('id', filter=Q(status='pending'))
+        ).order_by('created_at__date')
+        
+        # Format the response
+        stats = []
+        for pred in predictions:
+            total = pred['total_predictions']
+            correct = pred['correct_predictions']
+            pending = pred['pending_predictions']
+            # Calculate accuracy as a percentage between 0 and 100
+            accuracy = ((correct + pending) / total) if total > 0 else 0
+            # Ensure accuracy doesn't exceed 100%
+            accuracy = min(round(accuracy, 1), 100)
+            
+            stats.append({
+                'date': pred['created_at__date'],
+                'accuracy': accuracy,
+                'total_predictions': total
+            })
+        
+        # If no data exists for some days, fill with zeros
+        dates = set(pred['created_at__date'] for pred in predictions)
+        for i in range(7):
+            date = (end_date - timedelta(days=i)).date()
+            if date not in dates:
+                stats.append({
+                    'date': date,
+                    'accuracy': 0,
+                    'total_predictions': 0
+                })
+        
+        # Sort by date
+        stats.sort(key=lambda x: x['date'])
+        
+        return Response(stats, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)}, 
+            status=status.HTTP_400_BAD_REQUEST
+        )

@@ -144,7 +144,7 @@ const TreatmentRecommendations = () => {
                     </div>
 
                     <Button
-                      onClick={() => navigate(`/treatment-recommendations/${treatment.id}`)}
+                      onClick={() => navigate(`/treatments/${treatment.prediction_id}`)}
                     >
                       View Details
                       <ChevronRight className="ml-2 h-4 w-4" />

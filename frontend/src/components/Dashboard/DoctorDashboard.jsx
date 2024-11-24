@@ -34,6 +34,7 @@ const DoctorDashboard = () => {
   const [highRiskPatients, setHighRiskPatients] = useState([]);
   const [todayAppointments, setTodayAppointments] = useState([]);
   const [treatmentPlans, setTreatmentPlans] = useState([]);
+  const [predictionStats, setPredictionStats] = useState([]);
 
   useEffect(() => {
     // Fetch dashboard statistics
@@ -56,8 +57,25 @@ const DoctorDashboard = () => {
       }
     };
 
+    // Fetch prediction statistics
+    const fetchPredictionStats = async () => {
+      try {
+        const response = await api().get('/predictions/stats/');
+        // Format the data for the chart
+        const formattedData = response.data.map(stat => ({
+          date: new Date(stat.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+          accuracy: parseFloat((stat.accuracy * 100).toFixed(1)),
+          predictions: stat.total_predictions
+        }));
+        setPredictionStats(formattedData);
+      } catch (error) {
+        console.error('Error fetching prediction stats:', error);
+      }
+    };
+
     fetchDashboardStats();
     fetchTreatmentPlans();
+    fetchPredictionStats();
   }, []);
 
   return (
@@ -66,7 +84,7 @@ const DoctorDashboard = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
         {/* Total Patients Card */}
         <Card className="bg-white border-none hover:shadow-md transition-all duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Total Patients
             </CardTitle>
@@ -74,7 +92,7 @@ const DoctorDashboard = () => {
               <Users className="h-4 w-4 text-blue-500" />
             </div>
           </CardHeader>
-          <CardContent className="p-4">
+          <CardContent>
             <div className="text-2xl font-bold text-gray-900">{dashboardStats.total_patients}</div>
             <p className="text-sm text-green-600 flex items-center mt-1">
               <span className="flex items-center">
@@ -126,7 +144,7 @@ const DoctorDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {treatmentPlans.filter(plan => plan.status === 'pending').length}
+              {dashboardStats.pending_predictions}
             </div>
             <p className="text-sm text-gray-500 mt-1">Awaiting review</p>
           </CardContent>
@@ -160,7 +178,7 @@ const DoctorDashboard = () => {
                   </div>
                   <Button 
                     size="sm"
-                    onClick={() => navigate(`/treatment-plans/${plan.id}`)}
+                    onClick={() => navigate(`/treatments/${plan.prediction_id}`)}
                     className="bg-white text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors border-gray-200"
                   >
                     View Plan
@@ -174,32 +192,87 @@ const DoctorDashboard = () => {
         {/* Success Rate Chart */}
         <Card className="bg-white border-none hover:shadow-md transition-all duration-200">
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-lg font-semibold flex items-center text-gray-900">
-              <div className="p-2 bg-green-50 rounded-lg mr-3">
-                <Activity className="h-5 w-5 text-green-500" />
+            <CardTitle className="text-lg font-semibold flex items-center justify-between text-gray-900">
+              <div className="flex items-center">
+                <div className="p-2 bg-green-50 rounded-lg mr-3">
+                  <Activity className="h-5 w-5 text-green-500" />
+                </div>
+                Prediction Success Rate
               </div>
-              Prediction Success Rate
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center">
+                  <div className="h-3 w-3 rounded-full bg-green-500 mr-2" />
+                  <span className="text-gray-600">Accuracy</span>
+                </div>
+                <div className="flex items-center">
+                  <div className="h-3 w-3 rounded-full bg-blue-400 mr-2" />
+                  <span className="text-gray-600">Predictions</span>
+                </div>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-4">
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart 
-                  data={treatmentPlans.map(plan => ({
-                    name: new Date(plan.created_at).toLocaleDateString(),
-                    value: plan.confidence || 0
-                  }))} 
-                  margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+                  data={predictionStats}
+                  margin={{ top: 20, right: 20, left: 0, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="name" stroke="#888888" />
-                  <YAxis stroke="#888888" />
-                  <Tooltip />
+                  <XAxis 
+                    dataKey="date" 
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    yAxisId="left"
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={value => `${value}%`}
+                    domain={[0, 100]}
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    domain={[0, 'auto']}
+                  />
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                    }}
+                    formatter={(value, name) => [
+                      name === 'accuracy' ? `${value}%` : value,
+                      name === 'accuracy' ? 'Accuracy' : 'Predictions'
+                    ]}
+                  />
                   <Line 
+                    yAxisId="left"
                     type="monotone" 
-                    dataKey="value" 
+                    dataKey="accuracy" 
                     stroke="#22c55e"
                     strokeWidth={2}
+                    dot={{ fill: '#22c55e', strokeWidth: 2 }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
+                  />
+                  <Line 
+                    yAxisId="right"
+                    type="monotone" 
+                    dataKey="predictions" 
+                    stroke="#60a5fa"
+                    strokeWidth={2}
+                    dot={{ fill: '#60a5fa', strokeWidth: 2 }}
+                    activeDot={{ r: 6, strokeWidth: 0 }}
                   />
                 </LineChart>
               </ResponsiveContainer>

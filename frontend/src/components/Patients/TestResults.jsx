@@ -38,6 +38,7 @@ const TestResults = () => {
     chestPainType: 'TA'
   });
   const [errors, setErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (e) => {
     setTestResults({
@@ -100,12 +101,15 @@ const TestResults = () => {
       return;
     }
 
+    setIsLoading(true);
     try {
       await api().post(`/patient/${patientId}/submit-test-results/`, testResults);
       toast.success("Test results submitted successfully");
-      navigate(`/patient/${patientId}/prediction`);
+      navigate(`/patient/${patientId}/test-results-list`);
     } catch (error) {
       toast.error("Failed to generate prediction");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -336,8 +340,16 @@ const TestResults = () => {
               <Button 
                 onClick={generatePrediction} 
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium"
+                disabled={isLoading}
               >
-                Generate Prediction
+                {isLoading ? (
+                  <>
+                    <span className="animate-spin inline-block mr-2">⭘</span>
+                    Generating...
+                  </>
+                ) : (
+                  'Generate Prediction'
+                )}
               </Button>
             </div>
           </CardContent>

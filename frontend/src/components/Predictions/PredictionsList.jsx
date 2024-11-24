@@ -119,7 +119,7 @@ const PredictionsList = () => {
                       View Details
                     </Button>
                     <Button
-                      onClick={() => navigate(`/treatment-recommendations/${prediction.id}`)}
+                      onClick={() => navigate(`/treatments/${prediction.id}`)}
                     >
                       Treatment Plan
                       <ArrowRight className="ml-2 h-4 w-4" />

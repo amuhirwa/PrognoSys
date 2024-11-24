@@ -7,11 +7,12 @@ import {
   FileText, Activity, Heart, Clock, 
   AlertTriangle, Clipboard, ChevronRight, 
   Plus, BarChart, ArrowRight, ArrowLeft,
-  Calendar, Phone, Mail, User
+  Calendar, Phone, Mail, User, MessageSquare
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from "@/utils/axios";
 import { toast } from "react-hot-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 
 // Mock data
@@ -35,11 +36,15 @@ const PatientRecords = () => {
   const [showTestResults, setShowTestResults] = useState(false);
   const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showMedicalHistory, setShowMedicalHistory] = useState(false);
+  const [vitalSignsHistory, setVitalSignsHistory] = useState([]);
+  const [showEmergencyContact, setShowEmergencyContact] = useState(false);
 
 
   useEffect(() => {
     if (patientId) {
       fetchPatientData();
+      fetchVitalSigns();
     }
   }, [patientId]);
 
@@ -58,6 +63,26 @@ const PatientRecords = () => {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchVitalSigns = async () => {
+    try {
+      const response = await api().get(`patient/${patientId}/vital-signs/`);
+      console.log('Vital signs response:', response.data);
+      
+      const formattedData = response.data.map(record => ({
+        date: new Date(record.date).toLocaleDateString('en-US', { month: 'short' }),
+        heartRate: parseInt(record.heartRate),
+        bloodPressure: parseInt(record.bloodPressure),
+        temperature: parseFloat(record.temperature)
+      }));
+      
+      console.log('Formatted vital signs:', formattedData);
+      setVitalSignsHistory(formattedData);
+    } catch (error) {
+      console.error('Error fetching vital signs:', error);
+      handleNotification("Failed to fetch vital signs history", "error");
     }
   };
 
@@ -82,6 +107,169 @@ const PatientRecords = () => {
       console.error(error);
     }
   };
+
+  const handleMedicalHistoryClick = () => {
+    setShowMedicalHistory(true);
+  };
+
+  const MedicalHistoryDialog = () => (
+    <Dialog open={showMedicalHistory} onOpenChange={setShowMedicalHistory}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5 text-blue-500" />
+            Medical History
+          </DialogTitle>
+        </DialogHeader>
+        <div className="mt-4 space-y-4">
+          {patientData?.medical_history ? (
+            <div className="prose max-w-none">
+              <p className="text-gray-700 leading-relaxed">
+                {patientData.medical_history}
+              </p>
+            </div>
+          ) : (
+            <p className="text-gray-500 italic">No medical history available</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const EmergencyContactDialog = () => (
+    <Dialog open={showEmergencyContact} onOpenChange={setShowEmergencyContact}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Phone className="h-5 w-5 text-yellow-500" />
+            Emergency Contact Information
+          </DialogTitle>
+        </DialogHeader>
+        <div className="mt-4 space-y-4">
+          {patientData?.emergency_contact ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-yellow-50 rounded-lg border border-yellow-100">
+                <Phone className="h-5 w-5 text-yellow-500" />
+                <div>
+                  <p className="font-medium text-gray-900">{patientData.emergency_contact}</p>
+                  {patientData?.emergency_contact_relationship && (
+                    <p className="text-sm text-gray-500">
+                      Relationship: {patientData.emergency_contact_relationship}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => {
+                    if (patientData?.emergency_contact) {
+                      window.location.href = `tel:${patientData.emergency_contact}`;
+                    }
+                  }}
+                >
+                  <Phone className="h-4 w-4 mr-2" />
+                  Call Now
+                </Button>
+                <Button 
+                  className="w-full" 
+                  variant="outline"
+                  onClick={() => {
+                    if (patientData?.emergency_contact) {
+                      window.location.href = `sms:${patientData.emergency_contact}`;
+                    }
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Send SMS
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <p className="text-gray-500 italic">No emergency contact information available</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const VitalSignsChart = () => {
+    console.log('Current vital signs data:', vitalSignsHistory);
+    
+    if (vitalSignsHistory.length === 0) {
+      return (
+        <div className="h-[300px] flex items-center justify-center text-gray-500">
+          No vital signs data available
+        </div>
+      );
+    }
+
+    return (
+      <div className="h-[300px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={vitalSignsHistory}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis 
+              dataKey="date" 
+              stroke="#6b7280"
+              tickFormatter={(value) => value}
+            />
+            <YAxis 
+              stroke="#6b7280"
+              domain={['auto', 'auto']}
+            />
+            <Tooltip 
+              contentStyle={{ 
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px'
+              }}
+              formatter={(value, name) => [value, name]}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="heartRate" 
+              name="Heart Rate"
+              stroke="#ef4444" 
+              strokeWidth={2}
+              dot={{ fill: '#ef4444' }}
+              connectNulls
+            />
+            <Line 
+              type="monotone" 
+              dataKey="bloodPressure"
+              name="Blood Pressure" 
+              stroke="#3b82f6" 
+              strokeWidth={2}
+              dot={{ fill: '#3b82f6' }}
+              connectNulls
+            />
+            <Line 
+              type="monotone" 
+              dataKey="temperature"
+              name="Temperature" 
+              stroke="#22c55e" 
+              strokeWidth={2}
+              dot={{ fill: '#22c55e' }}
+              connectNulls
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    );
+  };
+
+  const QuickActionsButton = () => (
+    <Button 
+      onClick={handleMedicalHistoryClick} 
+      className="w-full justify-start text-left" 
+      variant="outline"
+    >
+      <FileText className="mr-2 h-4 w-4 text-green-500" />
+      View Medical History
+    </Button>
+  );
 
   return (
     <div className="flex-1 p-8 bg-gray-50">
@@ -163,13 +351,14 @@ const PatientRecords = () => {
               <Activity className="mr-2 h-4 w-4 text-blue-500" />
               New Test Results
             </Button>
-            <Button className="w-full justify-start text-left" variant="outline">
-              <FileText className="mr-2 h-4 w-4 text-green-500" />
-              View Medical History
-            </Button>
-            <Button className="w-full justify-start text-left" variant="outline">
-              <AlertTriangle className="mr-2 h-4 w-4 text-yellow-500" />
-              Report Emergency
+            <QuickActionsButton />
+            <Button 
+              onClick={() => setShowEmergencyContact(true)} 
+              className="w-full justify-start text-left" 
+              variant="outline"
+            >
+              <Phone className="mr-2 h-4 w-4 text-yellow-500" />
+              Emergency Contact
             </Button>
           </CardContent>
         </Card>
@@ -183,36 +372,7 @@ const PatientRecords = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={vitalHistory}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" stroke="#6b7280" />
-                  <YAxis stroke="#6b7280" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'white',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: '8px'
-                    }} 
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="heartRate" 
-                    stroke="#ef4444" 
-                    strokeWidth={2}
-                    dot={{ fill: '#ef4444' }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="bloodPressure" 
-                    stroke="#3b82f6" 
-                    strokeWidth={2}
-                    dot={{ fill: '#3b82f6' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
+            <VitalSignsChart />
           </CardContent>
         </Card>
 
@@ -243,6 +403,8 @@ const PatientRecords = () => {
           </CardContent>
         </Card>
       </div>
+      <MedicalHistoryDialog />
+      <EmergencyContactDialog />
     </div>
   );
 };

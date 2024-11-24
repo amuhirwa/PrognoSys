@@ -102,9 +102,6 @@ const PredictionResults = () => {
       setCreatingTreatmentPlan(true);
       const response = await api().post(`predictions/${prediction.id}/treatment-plan/`)
       setTreatmentPlan(response.data);
-      if (response.status === 201) {
-        navigate(`/treatment-recommendations/${prediction.id}`);
-      }
     } catch (error) {
       toast.error("Failed to create treatment plan");
     } finally {
@@ -306,7 +303,7 @@ const PredictionResults = () => {
                   className="w-full"
                   onClick={() => navigate(`/treatments/${prediction.id}`)}
                 >
-                  Edit Treatment Plan
+                  View Treatment Plan
                   <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
