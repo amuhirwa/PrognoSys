@@ -280,7 +280,9 @@ const PredictionResults = () => {
                     Treatment Summary
                   </h3>
                   <p className="text-purple-800">
-                    {treatmentPlan.summary}
+                    {treatmentPlan.primary_recommendation.split(/\*\*(.*?)\*\*/).map((part, index) => 
+                      index % 2 === 0 ? part : <strong key={index}>{part}</strong>
+                    )}
                   </p>
                 </div>
                 
@@ -302,7 +304,7 @@ const PredictionResults = () => {
                 <Button 
                   variant="outline"
                   className="w-full"
-                  onClick={() => navigate(`/treatment-plan/${testId}/edit`)}
+                  onClick={() => navigate(`/treatments/${prediction.id}`)}
                 >
                   Edit Treatment Plan
                   <ChevronRight className="ml-2 h-5 w-5" />

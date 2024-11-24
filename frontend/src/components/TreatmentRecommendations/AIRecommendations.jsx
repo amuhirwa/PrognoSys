@@ -1,109 +1,206 @@
-import React from 'react';
+import React from "react";
+import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import {
-  Brain,
-  MessageSquare,
-  ClipboardList,
-  AlertCircle
-} from 'lucide-react';
+import { Brain, MessageSquare, ClipboardList, AlertCircle } from "lucide-react";
+import { api } from "@/utils/axios";
 
 const AIRecommendations = () => {
-  // This would come from your LLM API in a real implementation
-  const mockAIRecommendations = {
-    primaryRecommendation: "Based on the patient's test results and risk factors, a comprehensive diabetes management plan is recommended.",
-    detailedPlan: [
-      {
-        category: "Medication",
-        recommendations: [
-          "Consider starting with Metformin 500mg twice daily",
-          "Monitor blood glucose levels regularly",
-          "Adjust dosage based on response after 2 weeks"
-        ]
-      },
-      {
-        category: "Lifestyle Changes",
-        recommendations: [
-          "Implement a low-glycemic diet plan",
-          "30 minutes of moderate exercise 5 times per week",
-          "Regular blood glucose monitoring"
-        ]
-      },
-      {
-        category: "Follow-up Care",
-        recommendations: [
-          "Schedule follow-up in 2 weeks",
-          "Regular HbA1c monitoring every 3 months",
-          "Annual eye examination"
-        ]
+  const { predictionId } = useParams();
+  const [treatmentPlan, setTreatmentPlan] = React.useState(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchTreatmentPlan = async () => {
+      try {
+        const { data } = await api().get(
+          `/predictions/${predictionId}/treatment-plan/`
+        );
+        setTreatmentPlan(data);
+      } catch (error) {
+        console.error("Error fetching treatment plan:", error);
+        // You might want to add error state handling here
+      } finally {
+        setIsLoading(false);
       }
-    ],
-    warnings: [
-      "Monitor for signs of hypoglycemia",
-      "Patient has family history of cardiovascular disease"
-    ]
+    };
+
+    if (predictionId) {
+      fetchTreatmentPlan();
+    }
+  }, [predictionId]);
+
+  const parseDetailedPlan = (plans) => {
+    const result = [];
+
+    plans.forEach((plan) => {
+      const fullText = plan.category + " " + plan.recommendations.join(" ");
+
+      // Find all numbered sections (e.g., "2.", "3.", "4.")
+      const sections = fullText.split(/(?=\*\*\d+\.)/);
+
+      sections.forEach((section) => {
+        // Skip empty sections
+        if (!section.trim()) return;
+
+        // Remove markdown and clean up the text
+        const cleanText = section.replace(/\*\*/g, "").trim();
+
+        // Match the numbered section and its content
+        const match = cleanText.match(/(\d+\.) *(.*)/);
+        if (!match) return;
+
+        const [, numberPart, content] = match;
+
+        // Split by colon to separate title from content
+        const [titlePart, ...contentParts] = content.split(":");
+
+        if (titlePart) {
+          // Join the remaining content back together (in case there were other colons)
+          const remainingContent = contentParts.join(":");
+
+          // Split into sentences while preserving abbreviations and decimals
+          const sentences = remainingContent
+            .replace(/(?<=\s|^)e\.g\.(?=\s|$)/g, "EXAMPLE_MARKER")
+            .replace(/(?<=\s|^)i\.e\.(?=\s|$)/g, "THAT_IS_MARKER")
+            .split(/\.(?!\d)(?!\s*[a-z])/)
+            .map((s) =>
+              s
+                .replace(/EXAMPLE_MARKER/g, "e.g.")
+                .replace(/THAT_IS_MARKER/g, "i.e.")
+                .trim()
+            )
+            .filter(Boolean);
+
+          result.push({
+            category: `${numberPart} ${titlePart.trim()}`,
+            recommendations: sentences,
+          });
+        }
+      });
+    });
+
+    return result.filter(
+      (item) =>
+        !item.category.toLowerCase().includes("warning") &&
+        !item.category.toLowerCase().includes("disclaimer")
+    );
   };
 
+  const parseWarningsAndDisclaimers = (plans) => {
+    const warningItems = [];
+
+    plans.forEach((plan) => {
+      const fullText = plan.category + " " + plan.recommendations.join(" ");
+      const sentences = fullText.split(".");
+
+      sentences.forEach((sentence) => {
+        const cleanSentence = sentence.replace(/\*\*/g, "").trim();
+        if (
+          cleanSentence &&
+          (cleanSentence.toLowerCase().includes("warning") ||
+            cleanSentence.toLowerCase().includes("disclaimer") ||
+            cleanSentence.toLowerCase().includes("seek immediate"))
+        ) {
+          warningItems.push(cleanSentence);
+        }
+      });
+    });
+
+    return warningItems;
+  };
+
+  if (isLoading) return <div>Loading...</div>;
+  if (!treatmentPlan) return <div>No treatment plan available</div>;
+
+  const parsedDetailedPlan = parseDetailedPlan(treatmentPlan.detailed_plan);
+  const parsedWarnings = parseWarningsAndDisclaimers(
+    treatmentPlan.detailed_plan
+  );
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg flex items-center">
-          <Brain className="mr-2 h-5 w-5 text-purple-500" />
+    <Card className="max-w-4xl mx-auto shadow-md">
+      <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-white">
+        <CardTitle className="text-xl flex items-center">
+          <Brain className="mr-3 h-6 w-6 text-purple-600" />
           AI-Generated Treatment Recommendations
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          <div className="bg-purple-50 p-4 rounded-lg">
-            <p className="text-purple-800">
-              {mockAIRecommendations.primaryRecommendation}
+      <CardContent className="p-6">
+        <div className="space-y-8">
+          {/* Primary Recommendation Section */}
+          <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200">
+            <h3 className="text-lg font-semibold text-purple-900 mb-3">
+              Primary Recommendation
+            </h3>
+            <p className="text-purple-800 leading-relaxed">
+              {treatmentPlan.primary_recommendation
+                .split(/\*\*(.*?)\*\*/)
+                .map((part, index) =>
+                  index % 2 === 0 ? part : <strong key={index}>{part}</strong>
+                )}{" "}
             </p>
           </div>
 
-          {mockAIRecommendations.detailedPlan.map((plan) => (
-            <div key={plan.category}>
-              <h4 className="font-medium text-gray-900 mb-2">
-                {plan.category}
-              </h4>
-              <ul className="space-y-2">
-                {plan.recommendations.map((rec, index) => (
-                  <li 
-                    key={index}
-                    className="flex items-start p-2 bg-gray-50 rounded-lg"
-                  >
-                    <ClipboardList className="h-5 w-5 text-gray-400 mr-2 mt-0.5" />
-                    <span>{rec}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
-
-          <div className="mt-6">
-            <h4 className="font-medium text-gray-900 mb-2 flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-              Important Considerations
-            </h4>
-            <div className="space-y-2">
-              {mockAIRecommendations.warnings.map((warning, index) => (
-                <div 
-                  key={index}
-                  className="p-2 bg-red-50 text-red-800 rounded-lg"
-                >
-                  {warning}
-                </div>
-              ))}
-            </div>
+          {/* Detailed Plans Section */}
+          <div className="space-y-8">
+            {parsedDetailedPlan.map((plan, index) => (
+              <div key={index} className="bg-white rounded-xl border shadow-sm">
+                <h4 className="font-semibold text-gray-900 p-4 border-b bg-gray-50">
+                  {plan.category}
+                </h4>
+                <ul className="p-4 space-y-3">
+                  {plan.recommendations.map((rec, recIndex) => (
+                    <li
+                      key={recIndex}
+                      className="flex items-start p-3 hover:bg-gray-50 rounded-lg transition-colors"
+                    >
+                      <ClipboardList className="h-5 w-5 text-purple-500 mr-3 mt-0.5 flex-shrink-0" />
+                      <span className="text-gray-700 leading-relaxed">
+                        {rec}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
 
-          <Button className="w-full mt-4">
-            <MessageSquare className="h-4 w-4 mr-2" />
-            Request AI Clarification
-          </Button>
+          {/* Warnings Section */}
+          {parsedWarnings.length > 0 && (
+            <div className="rounded-xl border border-red-200 overflow-hidden">
+              <h4 className="font-semibold text-gray-900 p-4 border-b bg-red-50 flex items-center">
+                <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                Important Considerations
+              </h4>
+              <div className="p-4 space-y-3">
+                {parsedWarnings.map((warning, index) => (
+                  <div
+                    key={index}
+                    className="p-3 bg-red-50 text-red-800 rounded-lg border border-red-100 flex items-start"
+                  >
+                    <AlertCircle className="h-5 w-5 text-red-500 mr-2 mt-0.5 flex-shrink-0" />
+                    <span className="leading-relaxed">{warning}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* AI Clarification Button */}
+          <div className="pt-4">
+            <Button
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white py-6 rounded-xl transition-colors"
+              size="lg"
+            >
+              <MessageSquare className="h-5 w-5 mr-2" />
+              Request AI Clarification
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
   );
 };
 
-export default AIRecommendations; 
+export default AIRecommendations;

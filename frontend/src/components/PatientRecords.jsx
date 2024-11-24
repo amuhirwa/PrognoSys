@@ -53,7 +53,6 @@ const PatientRecords = () => {
       console.log('Fetching data for patient:', patientId);
       const response = await api().get(`patient/${patientId}/`);
       setPatientData(response.data);
-      handleNotification("Patient data loaded successfully");
     } catch (error) {
       handleNotification("Failed to fetch patient data", "error");
       console.error(error);

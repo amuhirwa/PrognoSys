@@ -64,6 +64,9 @@ const NavBar = ({ userType }) => {
         const instance = createAxiosInstance();
         const response = await instance.get('user-info/');
         setUserInfo(response.data);
+        if (response.data.role == 'admin') {
+          navigate('/admin');
+      }
       } catch (error) {
         console.error('Error fetching user info:', error);
       }
