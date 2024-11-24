@@ -41,14 +41,10 @@ const TreatmentRecommendations = () => {
   const fetchTreatments = async () => {
     try {
       setLoading(true);
-      const response = await api().get('treatment-plans/');
+      const response = await api().get('treatment-plans/all/');
       setTreatments(response.data);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch treatments",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to fetch treatments")
     } finally {
       setLoading(false);
     }
@@ -61,11 +57,7 @@ const TreatmentRecommendations = () => {
       setSelectedTreatment(response.data);
       setDoctorNotes(response.data.doctor_notes || '');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch treatment details",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to fetch treatment details")
     } finally {
       setLoading(false);
     }
@@ -77,17 +69,10 @@ const TreatmentRecommendations = () => {
         doctorNotes,
         ...selectedTreatment
       });
-      toast({
-        title: "Success",
-        description: "Treatment plan saved successfully",
-      });
+      toast.success("Treatment plan saved successfully")
       navigate('/treatment-recommendations');
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save treatment plan",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to save treatment plan")
     }
   };
 
@@ -153,7 +138,7 @@ const TreatmentRecommendations = () => {
                       <div className="flex items-center space-x-2">
                         <span className="text-sm font-medium">Primary Treatment:</span>
                         <span className="text-sm text-gray-600">
-                          {treatment.primary_treatment.substring(0, 100)}...
+                          {treatment.primary_treatment?.substring(0, 100)}...
                         </span>
                       </div>
                     </div>

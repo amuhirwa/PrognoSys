@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to HealthConnect</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .logo {
+            color: #2563eb;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .content {
+            padding: 20px 0;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background-color: #2563eb;
+            color: #ffffff;
+            text-decoration: none;
+            border-radius: 6px;
+            margin: 20px 0;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 20px;
+            color: #666666;
+            font-size: 14px;
+            border-top: 1px solid #f0f0f0;
+        }
+        .role-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 14px;
+            font-weight: 500;
+            background-color: #e5e7eb;
+            color: #374151;
+            margin: 8px 0;
+        }
+        .role-badge.admin { background-color: #fef3c7; color: #92400e; }
+        .role-badge.doctor { background-color: #dbeafe; color: #1e40af; }
+        .role-badge.patient { background-color: #f3f4f6; color: #374151; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">PrognoSys</div>
+        </div>
+        
+        <div class="content">
+            <h2>Welcome to PrognoSys, {{ user.first_name }}!</h2>
+            
+            <p>Thank you for joining our healthcare platform. You've been registered as a 
+                <span class="role-badge {% if user.user_role == 'admin' %}admin{% elif user.user_role == 'doctor' %}doctor{% else %}patient{% endif %}">
+                    {{ user.user_role|title }}
+                </span>
+            </p>
+
+            <p>With PrognoSys, you can:</p>
+            <ul>
+                {% if user.user_role == 'patient' %}
+                    <li>Schedule appointments with healthcare professionals</li>
+                    <li>Access your medical records and test results</li>
+                    <li>Receive personalized health insights</li>
+                {% elif user.user_role == 'doctor' %}
+                    <li>Manage patient records and appointments</li>
+                    <li>Access advanced diagnostic tools</li>
+                    <li>Collaborate with other healthcare professionals</li>
+                {% elif user.user_role == 'admin' %}
+                    <li>Manage system users and resources</li>
+                    <li>Monitor platform performance</li>
+                    <li>Access administrative tools and reports</li>
+                {% endif %}
+            </ul>
+
+            <p>To get started, click the button below to log in to your account:</p>
+            
+            <a href="{{ login_url }}" class="button">Log In to PrognoSys</a>
+
+            <p>For security reasons, we recommend changing your password after your first login.</p>
+
+            {% if user.user_role == 'patient' %}
+                <p>Remember to complete your health profile and provide any relevant medical history during your first login.</p>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>If you have any questions or need assistance, please don't hesitate to contact our support team.</p>
+            <p>© {% now "Y" %} PrognoSys. All rights reserved.</p>
+            <small>This email was sent to {{ user.email }}</small>
+        </div>
+    </div>
+</body>
+</html> 

@@ -43,6 +43,7 @@ urlpatterns = [
     path('patient/<int:patient_id>/test-results/', views.get_test_results, name='get-test-results'),
     path('admin/stats/', views.get_system_stats, name='admin-stats'),
     path('admin/users/', views.manage_users, name='manage-users'),
+    path('admin/users/<int:user_id>/', views.manage_users, name='manage-user'),
     path('admin/resources/', views.manage_resources, name='manage-resources'),
     path('admin/model/retrain/', views.retrain_model, name='retrain-model'),
     path('get_profile/', views.get_profile, name='get_profile'),
@@ -57,5 +58,9 @@ urlpatterns = [
     path('test-results/<int:test_result_id>/predictions/', 
          views.get_predictions, 
          name='get-predictions'),
+    path('predictions/<int:prediction_id>/treatment-plan/', 
+         views.treatment_plan, 
+         name='treatment-plan'),
+    path('treatment-plans/all/', views.get_treatment_plans, name='get_treatment_plans'),
 ]
 

@@ -27,6 +27,7 @@ import ModelManagement from "./components/Admin/ModelManagement";
 import ResourceAllocation from "./components/Admin/ResourceAllocation";
 import Profile from "./pages/Profile";
 import TestResultDetails from '@/components/Patients/TestResultDetails';
+import AIRecommendations from "./components/TreatmentRecommendations/AIRecommendations";
 
 function App() {
   return (
@@ -56,12 +57,13 @@ function App() {
               <Route path="patient/:patientId/test-results" element={<TestResults />} />
               <Route path="predictions/:testId" element={<PredictionResults />} />
               <Route path="treatments" element={<TreatmentRecommendations />} />
-              <Route path="treatments/:predictionId" element={<TreatmentRecommendations />} />
+              <Route path="treatments/:predictionId" element={<AIRecommendations />} />
               <Route path="predictions" element={<PredictionsList />} />
               <Route path="patient/:patientId/test-results-list" element={<TestResultsList />} />
               <Route path="dash" element={<Dashboard />} />
               <Route path="profile" element={<Profile />} />
               <Route path="patient/:patientId/test-results/:testId" element={<TestResultDetails />} />
+
             </Route>
 
             {/* Catch all route - redirect to login */}

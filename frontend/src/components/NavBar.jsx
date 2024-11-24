@@ -96,7 +96,7 @@ const NavBar = ({ userType }) => {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="h-5 w-5" />
-                  {notifications.some(n => n.unread) && (
+                  {notifications.some(n => !n.seen) && (
                     <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-red-500" />
                   )}
                 </Button>

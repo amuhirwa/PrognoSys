@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { UserPlus, Users } from 'lucide-react';
+import AddUserModal from './AddUserModal';
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -25,6 +26,7 @@ const UserManagement = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -40,11 +42,7 @@ const UserManagement = () => {
       });
       setUsers(response.data);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch users",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to fetch users")
     } finally {
       setLoading(false);
     }
@@ -63,37 +61,34 @@ const UserManagement = () => {
       };
 
       await api().put(`admin/users/${editingUser.id}/`, updatedUser);
-      toast({
-        title: "Success",
-        description: "User updated successfully",
-      });
+      toast.success("User updated successfully")
       setIsEditModalOpen(false);
       setEditingUser(null); // Reset the editing user
       fetchUsers();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to update user",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to update user")
     }
   };
 
   const handleDeleteUser = async () => {
     try {
       await api().delete(`admin/users/${isDeletingUser.id}/`);
-      toast({
-        title: "Success",
-        description: "User deleted successfully",
-      });
+      toast.success("User deleted successfully")
       setIsDeleteModalOpen(false);
       fetchUsers();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to delete user",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to delete user")
+    }
+  };
+
+  const handleAddUser = async (userData) => {
+    try {
+      await api().post('admin/users/', userData);
+      toast.success("User added successfully");
+      setIsAddModalOpen(false);
+      fetchUsers(); // Refresh the user list
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to add user")
     }
   };
 
@@ -110,7 +105,7 @@ const UserManagement = () => {
             Manage system users, roles, and permissions
           </p>
         </div>
-        <Button size="sm" className="gap-2">
+        <Button size="sm" className="gap-2" onClick={() => setIsAddModalOpen(true)}>
           <UserPlus className="h-4 w-4" />
           Add New User
         </Button>
@@ -158,7 +153,6 @@ const UserManagement = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -170,11 +164,6 @@ const UserManagement = () => {
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.user_role)}>
                           {user.user_role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={user.is_active ? "success" : "secondary"}>
-                          {user.is_active ? 'Active' : 'Inactive'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
@@ -189,8 +178,9 @@ const UserManagement = () => {
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
+                          {user.user_role !== 'admin' && (
+                            <Button 
+                              variant="ghost" 
                             size="sm" 
                             className="text-destructive hover:text-destructive"
                             onClick={() => {
@@ -200,6 +190,7 @@ const UserManagement = () => {
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -317,6 +308,12 @@ const UserManagement = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AddUserModal 
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSubmit={handleAddUser}
+      />
     </div>
   );
 };

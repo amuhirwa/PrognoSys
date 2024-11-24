@@ -12,7 +12,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { api } from "@/utils/axios";
 import { toast } from "react-hot-toast";
-import { useToast } from "@/hooks/use-toast";
+
 
 // Mock data
 const vitalHistory = [
@@ -35,9 +35,7 @@ const PatientRecords = () => {
   const [showTestResults, setShowTestResults] = useState(false);
   const [patientData, setPatientData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
-  console.log(patientId);
 
   useEffect(() => {
     if (patientId) {
@@ -46,11 +44,7 @@ const PatientRecords = () => {
   }, [patientId]);
 
   const handleNotification = async (message, type = "default") => {
-    toast({
-      title: type === "error" ? "Error" : "Success",
-      description: message,
-      variant: type === "error" ? "destructive" : "default",
-    });
+    type === "error" ? toast.error(message) : toast.success(message);
   };
 
   const fetchPatientData = async () => {

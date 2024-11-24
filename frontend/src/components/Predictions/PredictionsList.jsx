@@ -12,14 +12,13 @@ import {
   Clock
 } from 'lucide-react';
 import { api } from "@/utils/axios";
-import { useToast } from "@/hooks/use-toast";
 import { useDispatch } from 'react-redux';
 import { changepage } from '@/utils/SharedData';
+import { toast } from 'react-hot-toast';
 
 const PredictionsList = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { toast } = useToast();
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,11 +33,7 @@ const PredictionsList = () => {
       const response = await api().get('predictions/');
       setPredictions(response.data);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch predictions",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch predictions");
     } finally {
       setLoading(false);
     }

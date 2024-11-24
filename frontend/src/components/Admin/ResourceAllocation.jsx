@@ -21,11 +21,7 @@ const ResourceAllocation = () => {
       const response = await api().get('admin/resources/');
       setResources(response.data);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch resources",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to fetch resources")
     } finally {
       setLoading(false);
     }

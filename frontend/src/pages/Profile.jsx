@@ -7,10 +7,9 @@ import { UserCircle, Mail, Phone, Lock, Loader2 } from 'lucide-react';
 import createAxiosInstance from '@/utils/axios';
 import { useSelector, useDispatch } from 'react-redux';
 import { addProfile } from '@/utils/SharedData';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'react-hot-toast';
 
 const Profile = () => {
-  const { toast } = useToast();
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -42,11 +41,7 @@ const Profile = () => {
           phone: response.data.phone || ''
         }));
       } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch profile data",
-          variant: "destructive",
-        });
+        toast.error(error.response?.data?.message || "Failed to fetch profile data")
       }
     };
 
@@ -72,16 +67,9 @@ const Profile = () => {
         phone: response.data.phone
       }));
 
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
+      toast.success("Profile updated successfully")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.error || "Failed to update profile",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.error || "Failed to update profile")
     } finally {
       setLoading(false);
     }
@@ -90,11 +78,7 @@ const Profile = () => {
   const handleChangePassword = async (e) => {
     e.preventDefault();
     if (formData.newPassword !== formData.confirmPassword) {
-      toast({
-        title: "Error",
-        description: "New passwords do not match",
-        variant: "destructive",
-      });
+      toast.error("New passwords do not match")
       return;
     }
 
@@ -106,10 +90,7 @@ const Profile = () => {
         new_password: formData.newPassword
       });
 
-      toast({
-        title: "Success",
-        description: "Password changed successfully",
-      });
+      toast.success("Password changed successfully")
 
       setFormData(prev => ({
         ...prev,
@@ -118,11 +99,7 @@ const Profile = () => {
         confirmPassword: ''
       }));
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to change password",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to change password")
     } finally {
       setLoading(false);
     }

@@ -20,11 +20,7 @@ const ModelManagement = () => {
       const response = await api().get('admin/stats/');
       setModelStats(response.data.model_performance);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch model statistics",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to fetch model statistics")
     }
   };
 
@@ -32,16 +28,9 @@ const ModelManagement = () => {
     try {
       setRetrainingStatus('training');
       await api().post('admin/model/retrain/');
-      toast({
-        title: "Success",
-        description: "Model retraining initiated successfully",
-      });
+      toast.success("Model retraining initiated successfully")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to initiate model retraining",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to initiate model retraining")
     } finally {
       setRetrainingStatus('idle');
     }

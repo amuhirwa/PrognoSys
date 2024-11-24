@@ -10,7 +10,7 @@ import {
   ChevronRight,
   Activity,
   Heart,
-  Thermometer,
+  Droplets,
   Calendar
 } from 'lucide-react';
 import { api } from "@/utils/axios";
@@ -32,22 +32,27 @@ const PredictionResults = () => {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [status, setStatus] = useState('pending');
+  const [treatmentPlan, setTreatmentPlan] = useState(null);
+  const [creatingTreatmentPlan, setCreatingTreatmentPlan] = useState(false);
   let queryUrl = '';
     
   useEffect(() => {
     fetchPredictionResults();
+    fetchTreatmentPlan();
   }, [testId]);
+
+  useEffect(() => {
+    fetchTreatmentPlan();
+  }, [prediction]);
 
   const fetchPredictionResults = async () => {
     try {
       setLoading(true);
-      console.log(page, testId);
       if (page === "list") {
         queryUrl = `predictions/${testId}`;
       } else {
         queryUrl = `test-results/${testId}/predictions/`;
       }
-      console.log(queryUrl);
       const response = await api().get(queryUrl);
       if (Array.isArray(response.data) && response.data.length > 0) {
         const highestConfidencePrediction = response.data.reduce((prev, current) => 
@@ -58,14 +63,19 @@ const PredictionResults = () => {
         setPrediction(response.data);
       }
     } catch (error) {
-      console.log(error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch prediction results",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch prediction results");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTreatmentPlan = async () => {
+    try {
+      queryUrl = `predictions/${prediction.id}/treatment-plan/`;
+      const response = await api().get(queryUrl);
+      setTreatmentPlan(response.data);
+    } catch (error) {
+      console.log('No treatment plan found', error);
     }
   };
 
@@ -78,24 +88,28 @@ const PredictionResults = () => {
           (prev.confidence > current.confidence) ? prev : current
         );
         setPrediction(highestConfidencePrediction);
-        toast({
-          title: "Success",
-          description: "Prediction generated successfully",
-        });
+        toast.success("Prediction generated successfully")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate prediction",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to generate prediction")
     } finally {
       setGenerating(false);
     }
   };
 
-  const handleCreateTreatmentPlan = () => {
-    navigate(`/treatment-recommendations/${testId}`);
+  const handleCreateTreatmentPlan = async () => {
+    try {
+      setCreatingTreatmentPlan(true);
+      const response = await api().post(`predictions/${prediction.id}/treatment-plan/`)
+      setTreatmentPlan(response.data);
+      if (response.status === 201) {
+        navigate(`/treatment-recommendations/${prediction.id}`);
+      }
+    } catch (error) {
+      toast.error("Failed to create treatment plan");
+    } finally {
+      setCreatingTreatmentPlan(false);
+    }
   };
 
   const handleStatusChange = async (newStatus) => {
@@ -109,16 +123,9 @@ const PredictionResults = () => {
         status: newStatus
       }));
       
-      toast({
-        title: "Success",
-        description: "Status updated successfully",
-      });
+      toast.success("Status updated successfully")
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update status",
-        variant: "destructive",
-      });
+      toast.error(error.response?.data?.message || "Failed to update status")
     }
   };
 
@@ -234,6 +241,100 @@ const PredictionResults = () => {
           </CardContent>
         </Card>
 
+        {/* Treatment Plan Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <ClipboardList className="mr-2 h-5 w-5 text-purple-500" />
+              Treatment Plan
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!treatmentPlan ? (
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  No treatment plan has been created yet. Create one based on the prediction results.
+                </p>
+                <Button 
+                  className="w-full"
+                  onClick={handleCreateTreatmentPlan}
+                  disabled={creatingTreatmentPlan}
+                >
+                  {creatingTreatmentPlan ? (
+                    <>
+                      <div className="animate-spin mr-2 h-4 w-4 border-2 border-b-transparent rounded-full" />
+                      Creating Treatment Plan...
+                    </>
+                  ) : (
+                    <>
+                      Create Treatment Plan
+                      <ChevronRight className="ml-2 h-5 w-5" />
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-purple-50 rounded-lg p-4">
+                  <h3 className="font-medium text-purple-900 mb-2">
+                    Treatment Summary
+                  </h3>
+                  <p className="text-purple-800">
+                    {treatmentPlan.summary}
+                  </p>
+                </div>
+                
+                {treatmentPlan.steps && treatmentPlan.steps.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="font-medium text-gray-900">Treatment Steps</h3>
+                    {treatmentPlan.steps.map((step, index) => (
+                      <div 
+                        key={index}
+                        className="flex items-start p-3 bg-gray-50 rounded-lg"
+                      >
+                        <span className="font-medium mr-2">{index + 1}.</span>
+                        <span>{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                
+                <Button 
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => navigate(`/treatment-plan/${testId}/edit`)}
+                >
+                  Edit Treatment Plan
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Recommended Tests Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center">
+              <ClipboardList className="mr-2 h-5 w-5 text-purple-500" />
+              Recommended Additional Tests
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {prediction?.additionalTests?.map((test, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <span>{test}</span>
+                  <ChevronRight className="h-5 w-5 text-gray-400" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Vital Signs Card */}
         <Card>
           <CardHeader>
@@ -261,60 +362,12 @@ const PredictionResults = () => {
               </div>
               
               <div className="flex items-center p-4 bg-gray-50 rounded-lg">
-                <Thermometer className="h-5 w-5 text-orange-500 mr-3" />
+                <Droplets className="h-5 w-5 text-purple-500 mr-3" />
                 <div>
-                  <p className="text-sm text-gray-500">Temperature</p>
-                  <p className="font-semibold">{prediction?.vitals?.temperature || '--'}°F</p>
+                  <p className="text-sm text-gray-500">Blood Glucose</p>
+                  <p className="font-semibold">{prediction?.vitals?.bloodGlucose || '--'} mg/dL</p>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Recommended Tests Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center">
-              <ClipboardList className="mr-2 h-5 w-5 text-purple-500" />
-              Recommended Additional Tests
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {prediction?.additionalTests?.map((test, index) => (
-                <div 
-                  key={index}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <span>{test}</span>
-                  <ChevronRight className="h-5 w-5 text-gray-400" />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Actions Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center">
-              <AlertTriangle className="mr-2 h-5 w-5 text-yellow-500" />
-              Next Steps
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-gray-600">
-                Based on the prediction results, we recommend creating a treatment plan
-                for the patient.
-              </p>
-              <Button 
-                className="w-full"
-                onClick={handleCreateTreatmentPlan}
-              >
-                Create Treatment Plan
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
             </div>
           </CardContent>
         </Card>

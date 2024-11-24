@@ -105,7 +105,7 @@ class User(AbstractUser):
     username = None
     USERNAME_FIELD = 'email'
     email = models.EmailField(_('email address'), unique=True)
-    phone = models.CharField(max_length=20)
+    phone = models.CharField(max_length=20, null=True, blank=True)
 
     REQUIRED_FIELDS = []
 
@@ -144,6 +144,7 @@ class NotificationType(models.TextChoices):
     CRITICAL_ALERT = 'critical_alert', 'Critical Patient Alert'
     PRESCRIPTION = 'prescription', 'Prescription Update'
     PATIENT_UPDATE = 'patient_update', 'Patient Information Update'
+    TREATMENT_PLAN = 'treatment_plan', 'Treatment Plan Update'
 
 
 
@@ -569,25 +570,15 @@ class Prediction(models.Model):
 
 
 class TreatmentPlan(models.Model):
-
-    prediction = models.OneToOneField(Prediction, on_delete=models.CASCADE)
-
-    doctor = models.ForeignKey(DoctorProfile, on_delete=models.CASCADE)
-
-    primary_treatment = models.TextField()
-
-    medications = models.JSONField(default=list)
-
-    follow_up_schedule = models.JSONField(default=list)
-
+    prediction = models.ForeignKey(Prediction, on_delete=models.CASCADE)
+    patient = models.ForeignKey(PatientProfile, on_delete=models.CASCADE)
+    doctor = models.ForeignKey(DoctorProfile, on_delete=models.CASCADE, null=True)
+    primary_recommendation = models.TextField()
+    detailed_plan = models.JSONField(default=list)
+    warnings = models.JSONField(default=list)
     doctor_notes = models.TextField(blank=True)
-
     created_at = models.DateTimeField(auto_now_add=True)
-
     updated_at = models.DateTimeField(auto_now=True)
 
-
-
     def __str__(self):
-
-        return f"Treatment Plan for {self.prediction.patient.user.get_full_name()}"
+        return f"Treatment Plan for {self.patient.user.get_full_name()}"

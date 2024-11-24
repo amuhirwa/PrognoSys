@@ -27,6 +27,9 @@ function createAxiosInstance() {
     (response) => response,
     (error) => {
       const errorObj = error;
+      if (errorObj.response?.status == 404) {
+        return Promise.reject(error);
+      }
       if (
         errorObj.response?.status == 401
         && errorObj.response?.config.url != "notifications/"

@@ -13,7 +13,7 @@ export default function LayOut() {
       <div className="flex h-[calc(100vh-64px)]">
         <SideBar />
         <div className={cn(
-          "flex-1 px-6 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 transition-colors",
+          "flex-1 overflow-y-auto scrollbar-thin scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400 transition-colors",
           isMobile && "pb-20 px-4"
         )}>
           <Outlet />

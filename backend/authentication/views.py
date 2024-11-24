@@ -9,7 +9,7 @@ from django.db.models.signals import post_save
 
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes, authentication_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
@@ -34,7 +34,132 @@ from django.contrib.sites.shortcuts import get_current_site
 from django.utils.encoding import force_bytes, force_str
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode  
 from django.db.models import Q
+from django.db.models import Count
+from django.db.models import Sum
 
+import google.generativeai as genai
+from django.conf import settings
+
+genai.configure(api_key=settings.GEMINI_API_KEY)
+model = genai.GenerativeModel("gemini-1.5-flash")
+
+def generate_treatment_recommendation(test_result, prediction):
+    """Generate AI treatment recommendations using Gemini"""
+    try:
+        # Convert choice codes to full names
+        fasting_bs = 'Yes' if test_result.fasting_bs == 'Y' else 'No'
+        exercise_angina = 'Yes' if test_result.exercise_angina == 'Y' else 'No'
+        
+        # Get full name for chest pain type
+        chest_pain_map = {
+            'TA': 'Typical Angina',
+            'ATA': 'Atypical Angina',
+            'NAP': 'Non-Anginal Pain',
+            'ASY': 'Asymptomatic'
+        }
+        chest_pain = chest_pain_map.get(test_result.chest_pain_type)
+
+        # Get full name for resting ECG
+        resting_ecg_map = {
+            'Normal': 'Normal',
+            'ST': 'ST-T Wave Abnormality',
+            'LVH': 'Left Ventricular Hypertrophy'
+        }
+        resting_ecg = resting_ecg_map.get(test_result.resting_ecg)
+
+        prompt = f"""As a medical AI assistant, provide a brief but comprehensive treatment plan for a patient with the following:
+
+Condition: {prediction.condition}
+Confidence: {prediction.confidence}%
+
+Patient Details:
+- Age: {test_result.patient.age}
+- Gender: {test_result.patient.user.gender}
+
+Test Results:
+- Glucose: {test_result.glucose}
+- Blood Pressure: {test_result.blood_pressure}
+- BMI: {test_result.bmi}
+- Cholesterol: {test_result.cholesterol}
+- Heart Rate: {test_result.max_hr}
+- Fasting Blood Sugar < 120 mg/dL: {fasting_bs}
+- Resting ECG: {resting_ecg}
+- Exercise Angina: {exercise_angina}
+- Chest Pain Type: {chest_pain}
+
+Please provide a concise treatment plan with:
+1. Brief Primary Treatment Plan (2-3 sentences)
+2. Key Medications (if needed)
+3. Essential Lifestyle Changes
+4. Follow-up Timeline
+5. Critical Warning Signs
+
+Keep each section brief and focused on the most important points."""
+
+        # Generate recommendation using Gemini
+        response = model.generate_content(prompt)
+        
+        # Parse and structure the response
+        recommendation = {
+            'primary_recommendation': response.text.split('\n\n')[0],
+            'detailed_plan': parse_treatment_sections(response.text),
+            'warnings': extract_warnings(response.text)
+        }
+        
+        return recommendation
+        
+    except Exception as e:
+        print(f"Error generating treatment recommendation: {str(e)}")
+        return None
+
+def parse_treatment_sections(response_text):
+    """Parse the response text into structured sections"""
+    sections = []
+    current_section = None
+    current_recommendations = []
+    
+    for line in response_text.split('\n'):
+        if any(header in line.lower() for header in ['medications:', 'lifestyle changes:', 'follow-up:']):
+            if current_section:
+                sections.append({
+                    'category': current_section,
+                    'recommendations': current_recommendations
+                })
+            current_section = line.strip(':')
+            current_recommendations = []
+        elif line.strip() and current_section:
+            if line.startswith('- '):
+                current_recommendations.append(line[2:])
+            elif line.startswith('• '):
+                current_recommendations.append(line[2:])
+            else:
+                current_recommendations.append(line)
+    
+    if current_section:
+        sections.append({
+            'category': current_section,
+            'recommendations': current_recommendations
+        })
+    
+    return sections
+
+def extract_warnings(response_text):
+    """Extract warning signs from the response"""
+    warnings = []
+    warning_section = False
+    
+    for line in response_text.split('\n'):
+        if 'warning' in line.lower() or 'monitor' in line.lower():
+            warning_section = True
+        elif warning_section and line.strip():
+            if line.startswith('- '):
+                warnings.append(line[2:])
+            elif line.startswith('• '):
+                warnings.append(line[2:])
+            elif not line.endswith(':'):
+                warnings.append(line)
+    
+    return warnings
 
 # Create your views here.
 class TokenGenerator(PasswordResetTokenGenerator):  
@@ -575,10 +700,9 @@ def get_system_stats(request):
         available_resources = Resource.objects.filter(available=True).count()
 
         # Get model performance metrics
-        total_predictions = MedicalRecord.objects.count()
-        correct_predictions = MedicalRecord.objects.filter(
-            predicted_diagnosis=models.F('confirmed_diagnosis')
-        ).count()
+        total_predictions = Prediction.objects.count()
+        correct_predictions = Prediction.objects.filter(status='confirmed').count()
+        print(correct_predictions, total_predictions)
         accuracy = (correct_predictions / total_predictions * 100) if total_predictions > 0 else 0
 
         return Response({
@@ -863,6 +987,20 @@ def generate_prediction(request, test_result_id):
                 related_patient=test_result.patient
             )
 
+        # Generate treatment recommendations for each prediction
+        for prediction in predictions:
+            recommendation = generate_treatment_recommendation(test_result, prediction)
+            if recommendation:
+                # Create or update treatment plan
+                TreatmentPlan.objects.create(
+                    prediction=prediction,
+                    patient=test_result.patient,
+                    doctor=request.user.doctorprofile if hasattr(request.user, 'doctorprofile') else None,
+                    primary_recommendation=recommendation['primary_recommendation'],
+                    detailed_plan=recommendation['detailed_plan'],
+                    warnings=recommendation['warnings']
+                )
+
         return Response({
             'predictions': PredictionSerializer(predictions, many=True).data
         }, status=status.HTTP_201_CREATED)
@@ -875,3 +1013,286 @@ def generate_prediction(request, test_result_id):
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
+    
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated])
+def treatment_plan(request, prediction_id):
+    if request.method == 'GET':
+        # Logic from get_treatment_plan
+        try:
+            prediction = Prediction.objects.get(id=prediction_id)
+            treatment_plan = TreatmentPlan.objects.get(prediction=prediction)
+            return Response(TreatmentPlanSerializer(treatment_plan).data)
+        except (Prediction.DoesNotExist, TreatmentPlan.DoesNotExist):
+            return Response({'error': 'Treatment plan not found'}, status=404)
+            
+    elif request.method == 'POST':
+        """Create a new treatment plan"""
+        try:
+            prediction = Prediction.objects.get(id=prediction_id)
+            test_result = prediction.test_result
+
+            recommendation = generate_treatment_recommendation(test_result, prediction)
+
+            if recommendation:
+                # Create or update treatment plan
+                treatment_plan = TreatmentPlan.objects.create(
+                    prediction=prediction,
+                    patient=test_result.patient,
+                    doctor=request.user.doctorprofile if hasattr(request.user, 'doctorprofile') else None,
+                    primary_recommendation=recommendation['primary_recommendation'],
+                    detailed_plan=recommendation['detailed_plan'],
+                    warnings=recommendation['warnings']
+                )
+
+                # Create notification for the patient
+                Notification.objects.create(
+                    user=test_result.patient.user,
+                    message=f"New treatment plan created for your {prediction.condition} prediction",
+                    notification_type=NotificationType.TREATMENT_PLAN,
+                    priority='high',
+                    related_patient=test_result.patient
+                )
+
+                # Create notifications for all assigned doctors
+                Notification.objects.create(
+                    user=request.user,
+                    message=f"New treatment plan created for patient {test_result.patient.user.get_full_name()}",
+                    notification_type=NotificationType.TREATMENT_PLAN,
+                    priority='high',
+                    related_patient=test_result.patient
+                )
+
+                return Response(status=status.HTTP_201_CREATED, data=TreatmentPlanSerializer(treatment_plan).data)
+            else:
+                return Response(status=status.HTTP_400_BAD_REQUEST)
+                
+        except Prediction.DoesNotExist:
+            return Response({'error': 'Prediction not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET', 'POST', 'DELETE', 'PUT'])
+@permission_classes([IsAdminUser])
+def manage_users(request, user_id=None):
+    """Manage system users"""
+    if request.method == 'GET':
+        search = request.GET.get('search', '')
+        role = request.GET.get('role', '')
+        
+        users = User.objects.all()
+        
+        if search:
+            users = users.filter(
+                Q(email__icontains=search) |
+                Q(first_name__icontains=search) |
+                Q(last_name__icontains=search)
+            )
+        
+        if role and role != 'all':
+            users = users.filter(user_role=role)
+            
+        serializer = UserSerializer(users, many=True)
+        return Response(serializer.data)
+    
+    elif request.method == 'POST':
+        serializer = UserSerializer(data=request.data, context={'request': request})
+        if serializer.is_valid():
+            user = serializer.save()
+            # Send welcome email
+            send_welcome_email(user)
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+    
+    elif request.method == 'DELETE':
+        user = User.objects.get(id=user_id)
+        user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    
+    elif request.method == 'PUT':
+        user = User.objects.get(id=user_id)
+        serializer = UserSerializer(user, data=request.data, context={'request': request}, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+
+@api_view(['GET', 'POST'])
+@permission_classes([IsAdminUser])
+def manage_resources(request):
+    """Manage medical resources"""
+    if request.method == 'GET':
+        search = request.GET.get('search', '')
+        category = request.GET.get('category', '')
+        status = request.GET.get('status', '')
+        
+        resources = Resource.objects.all()
+        
+        if search:
+            resources = resources.filter(
+                Q(name__icontains=search) |
+                Q(description__icontains=search)
+            )
+        
+        if category:
+            resources = resources.filter(category=category)
+            
+        if status:
+            resources = resources.filter(status=status)
+        
+        serializer = ResourceSerializer(resources, many=True)
+        return Response(serializer.data)
+    
+    elif request.method == 'POST':
+        serializer = ResourceSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def get_admin_dashboard_stats(request):
+    """Get comprehensive statistics for admin dashboard"""
+    try:
+        # Get date range
+        today = datetime.now()
+        thirty_days_ago = today - timedelta(days=30)
+        
+        # User statistics
+        total_users = User.objects.count()
+        new_users = User.objects.filter(date_joined__gte=thirty_days_ago).count()
+        users_by_role = User.objects.values('user_role').annotate(count=Count('id'))
+        
+        # Resource statistics
+        total_resources = Resource.objects.count()
+        low_stock_resources = Resource.objects.filter(status='low_stock').count()
+        resource_value = Resource.objects.aggregate(
+            total_value=Sum(F('quantity') * F('unit_cost'))
+        )['total_value'] or 0
+        
+        # Model performance
+        total_predictions = MedicalRecord.objects.count()
+        correct_predictions = MedicalRecord.objects.filter(
+            predicted_diagnosis=F('confirmed_diagnosis')
+        ).count()
+        accuracy = (correct_predictions / total_predictions * 100) if total_predictions > 0 else 0
+        
+        # Activity statistics
+        recent_activities = {
+            'logins': User.objects.filter(last_login__gte=thirty_days_ago).count(),
+            'predictions': MedicalRecord.objects.filter(created_at__gte=thirty_days_ago).count(),
+            'resources_updated': Resource.objects.filter(last_restocked__gte=thirty_days_ago).count()
+        }
+        
+        return Response({
+            'users': {
+                'total': total_users,
+                'new': new_users,
+                'by_role': users_by_role
+            },
+            'resources': {
+                'total': total_resources,
+                'low_stock': low_stock_resources,
+                'total_value': resource_value
+            },
+            'model_performance': {
+                'accuracy': round(accuracy, 2),
+                'total_predictions': total_predictions,
+                'recent_predictions': recent_activities['predictions']
+            },
+            'activity': recent_activities
+        })
+        
+    except Exception as e:
+        return Response({'error': str(e)}, status=400)
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def restock_resource(request, resource_id):
+    """Update resource stock levels"""
+    try:
+        resource = Resource.objects.get(id=resource_id)
+        quantity = request.data.get('quantity', 0)
+        
+        if quantity <= 0:
+            return Response({
+                'error': 'Quantity must be greater than 0'
+            }, status=400)
+            
+        resource.quantity += quantity
+        resource.available += quantity
+        resource.last_restocked = datetime.now()
+        
+        # Update status based on new quantity
+        if resource.quantity >= resource.minimum_stock:
+            resource.status = 'available'
+        elif resource.quantity > 0:
+            resource.status = 'low_stock'
+        else:
+            resource.status = 'out_of_stock'
+            
+        resource.save()
+        
+        return Response({
+            'message': f'Successfully restocked {quantity} units',
+            'current_quantity': resource.quantity,
+            'status': resource.status
+        })
+        
+    except Resource.DoesNotExist:
+        return Response({
+            'error': 'Resource not found'
+        }, status=404)
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=400)
+
+def send_welcome_email(user):
+    """Send welcome email to new users"""
+    subject = "Welcome to HealthConnect"
+    html_message = render_to_string('welcome-email.html', {
+        'user': user,
+        'login_url': settings.FRONTEND_URL + '/login'
+    })
+    plain_message = strip_tags(html_message)
+    
+    try:
+        email = EmailMultiAlternatives(
+            subject=subject,
+            body=plain_message,
+            from_email=settings.EMAIL_HOST_USER,
+            to=[user.email]
+        )
+        email.attach_alternative(html_message, "text/html")
+        email.send()
+    except Exception as e:
+        # Log the error but don't stop the user creation process
+        print(f"Failed to send welcome email: {str(e)}")
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_treatment_plans(request):
+    """Get all treatment plans"""
+    try:
+        treatment_plans = TreatmentPlan.objects.select_related(
+            'patient__user', 
+            'prediction'
+        ).all()
+        
+        data = [{
+            'id': plan.id,
+            'patient_name': plan.patient.user.get_full_name(),
+            'condition': plan.prediction.condition,
+            'primary_treatment': plan.primary_recommendation,
+            'created_at': plan.created_at,
+            'updated_at': plan.updated_at,
+        } for plan in treatment_plans]
+        
+        return Response(data, status=status.HTTP_200_OK)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)

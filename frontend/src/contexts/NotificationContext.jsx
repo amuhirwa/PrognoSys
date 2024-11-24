@@ -40,7 +40,7 @@ export const NotificationProvider = ({ children }) => {
   // Poll for new notifications every minute
   useEffect(() => {
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 60000);
+    const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
   }, []);
 
