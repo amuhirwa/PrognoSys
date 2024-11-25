@@ -2,8 +2,9 @@ import React from "react";
 import { useParams } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Brain, MessageSquare, ClipboardList, AlertCircle } from "lucide-react";
+import { Brain, MessageSquare, ClipboardList, AlertCircle, RefreshCcw } from "lucide-react";
 import { api } from "@/utils/axios";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AIRecommendations = () => {
   const { predictionId } = useParams();
@@ -113,8 +114,78 @@ const AIRecommendations = () => {
     return warningItems;
   };
 
-  if (isLoading) return <div>Loading...</div>;
-  if (!treatmentPlan) return <div>No treatment plan available</div>;
+  if (isLoading) return (
+    <Card className="max-w-4xl mx-auto shadow-md">
+      <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-white">
+        <CardTitle className="text-xl flex items-center">
+          <Brain className="mr-3 h-6 w-6 text-purple-600" />
+          AI-Generated Treatment Recommendations
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="space-y-8">
+          {/* Primary Recommendation Skeleton */}
+          <div className="bg-gradient-to-r from-purple-50 to-purple-100 p-6 rounded-xl border border-purple-200">
+            <Skeleton className="h-6 w-48 mb-4" />
+            <Skeleton className="h-20 w-full" />
+          </div>
+
+          {/* Detailed Plans Skeleton */}
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="bg-white rounded-xl border shadow-sm">
+              <div className="p-4 border-b bg-gray-50">
+                <Skeleton className="h-6 w-64" />
+              </div>
+              <div className="p-4 space-y-3">
+                {[1, 2].map((j) => (
+                  <div key={j} className="flex items-start p-3">
+                    <Skeleton className="h-5 w-5 mr-3" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+
+          {/* Button Skeleton */}
+          <div className="pt-4">
+            <Skeleton className="h-14 w-full rounded-xl" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+  if (!treatmentPlan) return (
+    <Card className="max-w-4xl mx-auto shadow-md">
+      <CardHeader className="border-b bg-gradient-to-r from-purple-50 to-white">
+        <CardTitle className="text-xl flex items-center">
+          <Brain className="mr-3 h-6 w-6 text-purple-600" />
+          AI-Generated Treatment Recommendations
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <div className="bg-gray-50 rounded-full p-4 mb-4">
+            <AlertCircle className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No Treatment Plan Available
+          </h3>
+          <p className="text-gray-500 max-w-md mb-6">
+            We couldn't find a treatment plan for this prediction. This might happen if the plan is still being generated or if there was an error.
+          </p>
+          <Button 
+            onClick={() => window.location.reload()}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCcw className="h-4 w-4" />
+            Refresh Page
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   const parsedDetailedPlan = parseDetailedPlan(treatmentPlan.detailed_plan);
   const parsedWarnings = parseWarningsAndDisclaimers(
