@@ -140,7 +140,8 @@ AUTH_USER_MODEL = 'authentication.User'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
-    "https://prognosys.vercel.app/"
+    "https://prognosys.vercel.app",
+    "https://prognosys.onrender.com"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
