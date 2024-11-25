@@ -45,10 +45,25 @@ const DoctorRoomView = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('available'); // Default to showing available rooms
+  const [filterStatus, setFilterStatus] = useState('all'); 
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isOccupyModalOpen, setIsOccupyModalOpen] = useState(false);
+  const [isUnoccupyModalOpen, setIsUnoccupyModalOpen] = useState(false);
+  const [user, setUser] = useState(null);
   const { toast } = useToast();
+
+  const fetchUserData = async () => {
+    try {
+      const response = await api().get('/user-info/');
+      setUser(response.data);
+    } catch (error) {
+      console.error('Failed to fetch user:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchUserData();
+  }, []);
 
   useEffect(() => {
     fetchRooms();
@@ -63,6 +78,7 @@ const DoctorRoomView = () => {
           status: filterStatus === 'all' ? null : filterStatus
         }
       });
+      console.log(response.data);
       setRooms(response.data);
     } catch (error) {
       toast({
@@ -90,6 +106,25 @@ const DoctorRoomView = () => {
         variant: "destructive",
         title: "Error",
         description: error.response?.data?.message || "Failed to occupy room"
+      });
+    }
+  };
+
+  const handleUnoccupyRoom = async () => {
+    try {
+      await api().post(`rooms/${selectedRoom.id}/unoccupy/`);
+      toast({
+        title: "Success",
+        description: "Room unoccupied successfully"
+      });
+      setIsUnoccupyModalOpen(false);
+      setSelectedRoom(null);
+      fetchRooms();
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error.response?.data?.message || "Failed to unoccupy room"
       });
     }
   };
@@ -169,7 +204,7 @@ const DoctorRoomView = () => {
                   </TableCell>
                   <TableCell>{room.equipment || '-'}</TableCell>
                   <TableCell>
-                    {room.status === 'available' && (
+                    {room.status === 'available' ? (
                       <Button 
                         variant="outline" 
                         size="sm"
@@ -180,6 +215,18 @@ const DoctorRoomView = () => {
                       >
                         <DoorOpen className="h-4 w-4 mr-2" />
                         Occupy
+                      </Button>
+                    ) : room?.current_occupant === user?.id && (
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedRoom(room);
+                          setIsUnoccupyModalOpen(true);
+                        }}
+                      >
+                        <DoorOpen className="h-4 w-4 mr-2" />
+                        Unoccupy
                       </Button>
                     )}
                   </TableCell>
@@ -210,6 +257,32 @@ const DoctorRoomView = () => {
               Cancel
             </Button>
             <Button onClick={handleOccupyRoom}>
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Unoccupy Room Modal */}
+      <Dialog open={isUnoccupyModalOpen} onOpenChange={setIsUnoccupyModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Unoccupy Room</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to unoccupy {selectedRoom?.name}? This will mark the room as available for others.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsUnoccupyModalOpen(false);
+                setSelectedRoom(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleUnoccupyRoom}>
               Confirm
             </Button>
           </DialogFooter>

@@ -186,3 +186,76 @@ class RoomBookingSerializer(serializers.ModelSerializer):
     def get_room_name(self, obj):
         return obj.room.name
 
+
+class UserSettingsSerializer(serializers.ModelSerializer):
+    profile = serializers.SerializerMethodField()
+    notifications = serializers.SerializerMethodField()
+    appearance = serializers.SerializerMethodField()
+
+    class Meta:
+        model = UserSettings
+        fields = ['profile', 'notifications', 'appearance']
+
+    def get_profile(self, obj):
+        return {
+            'name': f"{obj.user.first_name} {obj.user.last_name}",
+            'email': obj.user.email,
+            'phone': obj.user.phone or '',
+            'department': obj.department or ''
+        }
+
+    def get_notifications(self, obj):
+        return {
+            'email': obj.email_notifications,
+            'push': obj.push_notifications,
+            'roomUpdates': obj.room_updates,
+            'systemUpdates': obj.system_updates
+        }
+
+    def get_appearance(self, obj):
+        return {
+            'theme': obj.theme,
+            'compactMode': obj.compact_mode
+        }
+
+    def update(self, instance, validated_data):
+        if 'profile' in validated_data:
+            profile_data = validated_data.pop('profile')
+            user = instance.user
+            user.first_name = profile_data.get('name', '').split()[0]
+            user.last_name = ' '.join(profile_data.get('name', '').split()[1:])
+            user.phone = profile_data.get('phone', user.phone)
+            user.save()
+            instance.department = profile_data.get('department', instance.department)
+
+        if 'notifications' in validated_data:
+            notifications = validated_data.pop('notifications')
+            instance.email_notifications = notifications.get('email', instance.email_notifications)
+            instance.push_notifications = notifications.get('push', instance.push_notifications)
+            instance.room_updates = notifications.get('roomUpdates', instance.room_updates)
+            instance.system_updates = notifications.get('systemUpdates', instance.system_updates)
+
+        if 'appearance' in validated_data:
+            appearance = validated_data.pop('appearance')
+            instance.theme = appearance.get('theme', instance.theme)
+            instance.compact_mode = appearance.get('compactMode', instance.compact_mode)
+
+        instance.save()
+        return instance
+
+
+        # Update user profile data if provided
+        user = instance.user
+        if 'phone' in validated_data:
+            user.phone = validated_data.pop('phone')
+        if hasattr(user, 'doctorprofile') and 'department' in validated_data:
+            user.doctorprofile.specialization = validated_data.pop('department')
+            user.doctorprofile.save()
+            
+        # Update the rest of the settings
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        return instance
+

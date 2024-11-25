@@ -298,6 +298,7 @@ def get_user_info(request):
         'name': f"{user.first_name} {user.last_name}",
         'email': user.email,
         'role': user.user_role,
+        'id': user.id
     }
     return Response(data, status=status.HTTP_200_OK)
 
@@ -1640,4 +1641,129 @@ def occupy_room(request, room_id):
         return Response(
             {'message': str(e)},
             status=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def unoccupy_room(request, room_id):
+    """Unoccupy a room"""
+    try:
+        room = Room.objects.get(id=room_id)
+        doctor = DoctorProfile.objects.get(user=request.user)
+        
+        # Check if room is occupied by the requesting doctor
+        if room.status != 'occupied' or room.current_occupant != doctor:
+            return Response(
+                {'message': 'You are not occupying this room'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+            
+        # Update room status
+        room.status = 'available'
+        room.current_occupant = None
+        room.save()
+        
+        return Response({
+            'message': 'Room unoccupied successfully'
+        })
+        
+    except Room.DoesNotExist:
+        return Response(
+            {'message': 'Room not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except DoctorProfile.DoesNotExist:
+        return Response(
+            {'message': 'Doctor profile not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    except Exception as e:
+        return Response(
+            {'message': str(e)},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+@api_view(['GET', 'PATCH'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def manage_settings(request):
+    """Get or update user settings"""
+    try:
+        # Get or create settings
+        settings, created = UserSettings.objects.get_or_create(
+            user=request.user,
+            defaults={
+                'email_notifications': True,
+                'push_notifications': True,
+                'room_updates': True,
+                'system_updates': False,
+                'theme': 'light',
+                'compact_mode': False
+            }
+        )
+        
+        if request.method == 'GET':
+            serializer = UserSettingsSerializer(settings)
+            return Response(serializer.data)
+            
+        elif request.method == 'PATCH':
+            serializer = UserSettingsSerializer(settings, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=400)
+            
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=400
+        )
+
+@api_view(['POST'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def reset_settings(request):
+    """Reset user settings to defaults"""
+    try:
+        settings = request.user.settings
+        
+        # Reset to defaults
+        settings.email_notifications = True
+        settings.push_notifications = True
+        settings.room_updates = True
+        settings.system_updates = False
+        settings.theme = 'light'
+        settings.compact_mode = False
+        settings.save()
+        
+        serializer = UserSettingsSerializer(settings)
+        return Response({
+            'message': 'Settings reset successfully',
+            'settings': serializer.data
+        })
+        
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=400
+        )
+
+@api_view(['GET'])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
+def get_notification_preferences(request):
+    """Get user's notification preferences"""
+    try:
+        settings = request.user.settings
+        return Response({
+            'email_notifications': settings.email_notifications,
+            'push_notifications': settings.push_notifications,
+            'room_updates': settings.room_updates,
+            'system_updates': settings.system_updates
+        })
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=400
         )

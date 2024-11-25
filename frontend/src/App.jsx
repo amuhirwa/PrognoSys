@@ -30,6 +30,7 @@ import TestResultDetails from "@/components/Patients/TestResultDetails";
 import AIRecommendations from "./components/TreatmentRecommendations/AIRecommendations";
 import RoomManagement from "./components/Admin/RoomManagement";
 import DoctorRoomView from "./components/Doctor/DoctorRoomView";
+import SettingsPage from "./components/Settings/SettingsPage";
 
 function App() {
   return (
@@ -81,6 +82,7 @@ function App() {
                 element={<TestResultDetails />}
               />
               <Route path="rooms" element={<DoctorRoomView />} />
+              <Route path="settings" element={<SettingsPage />} />
             </Route>
 
             {/* Catch all route - redirect to login */}

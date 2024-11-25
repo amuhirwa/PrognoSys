@@ -74,5 +74,8 @@ urlpatterns = [
     path('room-bookings/', views.room_bookings, name='room-bookings'),
     path('rooms/<int:room_id>/bookings/', views.room_bookings, name='room-specific-bookings'),
     path('rooms/<int:room_id>/occupy/', views.occupy_room, name='occupy-room'),
+    path('rooms/<int:room_id>/unoccupy/', views.unoccupy_room, name='unoccupy-room'),
+    path('settings/', views.manage_settings, name='manage-settings'),
+    path('settings/reset/', views.reset_settings, name='reset-settings'),
+    path('settings/notifications/', views.get_notification_preferences, name='notification-preferences'),
 ]
-

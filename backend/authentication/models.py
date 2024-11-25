@@ -12,6 +12,9 @@ from django.urls import reverse
 
 from django.utils.html import format_html
 
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
 
 
 # Create your models here.
@@ -655,3 +658,41 @@ class RoomBooking(models.Model):
 
     def __str__(self):
         return f"{self.room.name} - {self.doctor.user.get_full_name()}"
+
+class UserSettings(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='settings')
+    
+    # Notification preferences
+    email_notifications = models.BooleanField(default=True)
+    push_notifications = models.BooleanField(default=True)
+    room_updates = models.BooleanField(default=True)
+    system_updates = models.BooleanField(default=False)
+    
+    # Appearance settings
+    theme = models.CharField(
+        max_length=20,
+        choices=[
+            ('light', 'Light'),
+            ('dark', 'Dark'),
+            ('system', 'System')
+        ],
+        default='light'
+    )
+    compact_mode = models.BooleanField(default=False)
+    
+    # Profile settings
+    phone = models.CharField(max_length=20, blank=True)
+    department = models.CharField(max_length=100, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Settings for {self.user.email}"
+
+# Signal to create settings when a user is created
+@receiver(post_save, sender=User)
+def create_user_settings(sender, instance, created, **kwargs):
+    """Create settings for new users"""
+    if created:
+        UserSettings.objects.get_or_create(user=instance)
