@@ -141,31 +141,6 @@ const NavBar = ({ userType }) => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Settings Dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon">
-                  <Settings className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Settings</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem>
-                  <UserCog className="mr-2 h-4 w-4" /> Account Settings
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Lock className="mr-2 h-4 w-4" /> Privacy & Security
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Bell className="mr-2 h-4 w-4" /> Notifications
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <HelpCircle className="mr-2 h-4 w-4" /> Help & Support
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
             {/* User Account Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -186,8 +161,8 @@ const NavBar = ({ userType }) => {
                 <DropdownMenuItem onClick={() => navigate('/profile')}>
                   <UserCircle className="mr-2 h-4 w-4" /> Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Mail className="mr-2 h-4 w-4" /> Messages
+                <DropdownMenuItem onClick={() => navigate('/settings')}>
+                  <Settings className="mr-2 h-4 w-4" /> Settings
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-red-600 cursor-pointer" onClick={handleLogout}>
