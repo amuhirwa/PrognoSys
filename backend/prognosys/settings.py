@@ -140,6 +140,7 @@ AUTH_USER_MODEL = 'authentication.User'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",
+    "https://prognosys.vercel.app/"
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -165,7 +166,6 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'your-email@gmail.com'  # Your email
 EMAIL_HOST_PASSWORD = 'your-app-password'  # Your email password or app-specific password
-FRONTEND_URL = 'http://localhost:3000'  # Your frontend URL
 
 
 GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')

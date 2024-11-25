@@ -15,7 +15,7 @@ function createAxiosInstance() {
     token = sessionStorage.getItem("token");
   }
   const instance = axios.create({
-    baseURL: "http://127.0.0.1:8000/api/",
+    baseURL: "https://prognosys.onrender.com/api/",
     headers: {
       Authorization: "Bearer " + token,
       "Content-Type": "application/json",
