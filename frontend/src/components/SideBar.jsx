@@ -56,6 +56,7 @@ export default function SideBar() {
       items: [
         { icon: Activity, label: "Risk Predictions", id: "predictions" },
         { icon: Clipboard, label: "Treatment Plans", id: "treatments" },
+        { icon: Hospital, label: "Rooms", id: "rooms" },
       ]
     }
   ];
