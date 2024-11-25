@@ -176,7 +176,7 @@ Re-run migrations.
 
 1. Fork the repository.
 2. Create your feature branch:
-   ```bash
+```bash
    git checkout -b feature/AmazingFeature
 ```
 3. Commit your changes:
