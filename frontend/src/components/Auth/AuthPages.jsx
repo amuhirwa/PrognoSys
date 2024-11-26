@@ -290,17 +290,6 @@ const AuthPages = () => {
             </Button>
 
             {/* Sign Up Link */}
-            <p className="text-center text-gray-600">
-              {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <Button
-                type="button"
-                variant="link"
-                className="text-blue-600 hover:text-blue-700 font-medium"
-                onClick={() => setIsLogin(!isLogin)}
-              >
-                {isLogin ? "Create an account" : "Sign in"}
-              </Button>
-            </p>
           </form>
         </div>
 
