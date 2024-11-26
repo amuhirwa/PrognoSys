@@ -61,17 +61,9 @@ const AuthPages = () => {
     email: Yup.string()
       .email("Invalid email address")
       .required("Email is required"),
-    phoneNumber: Yup.string()
-      .required("Phone number is required")
-      .matches(/^[0-9]+$/, "Must be only digits")
-      .min(10, "Must be at least 10 digits"),
     password: Yup.string()
       .min(6, "Must be 6 characters or more")
       .required("Password is required"),
-    confirmPassword: Yup.string()
-      .oneOf([Yup.ref("password"), null], "Passwords must match")
-      .required("Please confirm your password"),
-    sharecode: Yup.string().matches(/^[0-9]{4}$/, "Must be exactly 4 digits"),
   });
 
   const loginSchema = Yup.object({
@@ -123,11 +115,7 @@ const AuthPages = () => {
     initialValues: {
       name: "",
       email: "",
-      phoneNumber: "",
       password: "",
-      confirmPassword: "",
-      sharecode: "",
-      userType: userType,
     },
     validationSchema: registerSchema,
     onSubmit: async (values) => {
