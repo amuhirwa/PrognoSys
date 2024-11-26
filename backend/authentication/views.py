@@ -793,7 +793,7 @@ def manage_resources(request):
 def retrain_model(request):
     """Trigger model retraining"""
     try:
-        
+
         return Response({
             'message': 'Model retraining initiated successfully',
             'status': 'pending'
@@ -1117,7 +1117,7 @@ def manage_users(request, user_id=None):
         if serializer.is_valid():
             user = serializer.save()
             # Send welcome email
-            send_welcome_email(user)
+            # send_welcome_email(user)
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
     
