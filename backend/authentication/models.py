@@ -73,6 +73,7 @@ class UserRoleChoices(models.TextChoices):
     health_professional = "Health Professional"
     patient = "Patient"
     admin_user = "admin"
+    doctor = "Doctor"
 
 class GenderChoices(models.TextChoices):
     """
