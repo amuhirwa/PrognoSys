@@ -1269,27 +1269,27 @@ def restock_resource(request, resource_id):
             'error': str(e)
         }, status=400)
 
-def send_welcome_email(user):
-    """Send welcome email to new users"""
-    subject = "Welcome to HealthConnect"
-    html_message = render_to_string('welcome-email.html', {
-        'user': user,
-        'login_url': settings.FRONTEND_URL + '/login'
-    })
-    plain_message = strip_tags(html_message)
+# def send_welcome_email(user):
+#     """Send welcome email to new users"""
+#     subject = "Welcome to Prognosys"
+#     html_message = render_to_string('welcome-email.html', {
+#         'user': user,
+#         'login_url': settings.FRONTEND_URL + '/login'
+#     })
+#     plain_message = strip_tags(html_message)
     
-    try:
-        email = EmailMultiAlternatives(
-            subject=subject,
-            body=plain_message,
-            from_email=settings.EMAIL_HOST_USER,
-            to=[user.email]
-        )
-        email.attach_alternative(html_message, "text/html")
-        email.send()
-    except Exception as e:
-        # Log the error but don't stop the user creation process
-        print(f"Failed to send welcome email: {str(e)}")
+#     try:
+#         email = EmailMultiAlternatives(
+#             subject=subject,
+#             body=plain_message,
+#             from_email=settings.EMAIL_HOST_USER,
+#             to=[user.email]
+#         )
+#         email.attach_alternative(html_message, "text/html")
+#         email.send()
+#     except Exception as e:
+#         # Log the error but don't stop the user creation process
+#         print(f"Failed to send welcome email: {str(e)}")
 
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
