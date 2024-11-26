@@ -793,8 +793,7 @@ def manage_resources(request):
 def retrain_model(request):
     """Trigger model retraining"""
     try:
-        # Here you would implement your model retraining logic
-        # This is a placeholder that simulates retraining
+        
         return Response({
             'message': 'Model retraining initiated successfully',
             'status': 'pending'

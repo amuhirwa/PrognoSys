@@ -44,14 +44,6 @@ const ModelManagement = () => {
           <p className="text-muted-foreground mt-1">Monitor and manage AI model performance</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline" size="sm">
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Model
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Download Model
-          </Button>
           <Button 
             onClick={handleRetrainModel}
             disabled={retrainingStatus === 'training'}

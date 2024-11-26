@@ -46,11 +46,6 @@ const AdminSidebar = () => {
       icon: <Building2 className="h-5 w-5" />,
       path: '/admin/rooms'
     },
-    {
-      title: 'Settings',
-      icon: <Settings className="h-5 w-5" />,
-      path: '/admin/settings'
-    }
   ];
 
   return (
