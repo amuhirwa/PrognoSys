@@ -67,9 +67,9 @@ const AddUserModal = ({ isOpen, onClose, onSubmit }) => {
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Admin">Admin</SelectItem>
-                      <SelectItem value="Health Professional">Doctor</SelectItem>
-                      <SelectItem value="Patient">Patient</SelectItem>
+                      <SelectItem value="admin_user">Admin</SelectItem>
+                      <SelectItem value="health_professional">Doctor</SelectItem>
+                      <SelectItem value="patient">Patient</SelectItem>
                     </SelectContent>
                   </Select>
                 )}
