@@ -36,7 +36,7 @@ Prognosys simplifies healthcare management with features such as:
 - **AI-powered Medical Predictions**
 - **Real-time Notifications**
 - **User Settings and Preferences**
-- **Role-based Access Control (Admin, Doctor, Patient)**
+- **Role-based Access Control (Admin, Doctor)**
 
 ---
 
@@ -79,7 +79,6 @@ Backend
 Create a .env file in the backend directory with the following variables:
 
 ```makefile
-Copy code
 GEMINI_API_KEY=YOUR_API_KEY
 ```
 Frontend
