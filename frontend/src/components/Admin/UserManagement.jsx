@@ -8,12 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { api } from "@/utils/axios";
-import { useToast } from "@/hooks/use-toast";
 import { Search, Plus, Edit, Trash2, RefreshCw } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { UserPlus, Users } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import AddUserModal from './AddUserModal';
 
 const UserManagement = () => {
@@ -21,7 +21,6 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
-  const { toast } = useToast();
   const [editingUser, setEditingUser] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeletingUser, setIsDeletingUser] = useState(null);
@@ -253,8 +252,7 @@ const UserManagement = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="doctor">Doctor</SelectItem>
-                    <SelectItem value="patient">Patient</SelectItem>
+                    <SelectItem value="Health Professional">Doctor</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
